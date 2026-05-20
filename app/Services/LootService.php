@@ -36,13 +36,25 @@ class LootService
                 'item_name' => $loot['name'],
                 'rarity' => $loot['rarity'],
                 'source' => $source,
-                'quantity' => $loot['stackable'] ? random_int(1, (int) $loot['max_stack']) : 1,
+                'quantity' => $this->quantityForLoot($loot),
             ]);
 
             $this->events->dispatch(new LootDropped($droppedItem));
 
             return $droppedItem;
         });
+    }
+
+    /**
+     * @param  array<string, mixed>  $loot
+     */
+    private function quantityForLoot(array $loot): int
+    {
+        if (! ($loot['stackable'] ?? false)) {
+            return 1;
+        }
+
+        return random_int(1, max(1, (int) ($loot['max_stack'] ?? 1)));
     }
 
     private function shouldForceRareOrHigher(?UserLootStat $stats): bool

@@ -86,6 +86,29 @@ test('it guarantees rare or higher after ten consecutive commons', function (): 
         ->and($droppedItem->rarity)->toBe('rare');
 });
 
+test('it clamps invalid stack max to at least one', function (): void {
+    Event::fake([LootDropped::class]);
+
+    config()->set('loot.items', [
+        [
+            'name' => 'Broken Stack',
+            'weight' => 1,
+            'rarity' => 'common',
+            'stackable' => true,
+            'max_stack' => 0,
+        ],
+    ]);
+
+    $user = User::factory()->create();
+
+    $droppedItem = app(LootService::class)->roll(
+        userId: $user->id,
+        source: 'broken_config_test',
+    );
+
+    expect($droppedItem->quantity)->toBe(1);
+});
+
 test('it rolls back the dropped item if event dispatch fails', function (): void {
     config()->set('loot.items', [
         [
