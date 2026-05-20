@@ -4,6 +4,7 @@ use App\Events\LootDropped;
 use App\Jobs\LootDropJob;
 use App\Models\DroppedItem;
 use App\Models\User;
+use App\Models\UserLootStat;
 use App\Services\LootService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
@@ -63,14 +64,12 @@ test('loot dropped listeners execute and update user stats', function (): void {
 
     event(new LootDropped($droppedItem));
 
-    $this->assertDatabaseHas('user_loot_stats', [
-        'user_id' => $user->id,
-        'total_drops' => 1,
-        'legendary_count' => 1,
-        'consecutive_common_drops' => 0,
-    ]);
+    $stats = UserLootStat::query()->where('user_id', $user->id)->firstOrFail();
 
-    $this->assertNotNull($user->lootStat()->first()?->last_drop_at);
+    expect($stats->total_drops)->toBe(1)
+        ->and($stats->legendary_count)->toBe(1)
+        ->and($stats->consecutive_common_drops)->toBe(0)
+        ->and($stats->last_drop_at)->not->toBeNull();
 
     Log::shouldHaveReceived('info')
         ->once()
@@ -87,19 +86,17 @@ test('common streak increments and resets on rare or higher drop', function (): 
     event(new LootDropped(createLootSystemDroppedItem($user, rarity: 'common')));
     event(new LootDropped(createLootSystemDroppedItem($user, rarity: 'common')));
 
-    $this->assertDatabaseHas('user_loot_stats', [
-        'user_id' => $user->id,
-        'total_drops' => 2,
-        'consecutive_common_drops' => 2,
-    ]);
+    $stats = UserLootStat::query()->where('user_id', $user->id)->firstOrFail();
+
+    expect($stats->total_drops)->toBe(2)
+        ->and($stats->consecutive_common_drops)->toBe(2);
 
     event(new LootDropped(createLootSystemDroppedItem($user, itemName: 'Rare Shield', rarity: 'rare')));
 
-    $this->assertDatabaseHas('user_loot_stats', [
-        'user_id' => $user->id,
-        'total_drops' => 3,
-        'consecutive_common_drops' => 0,
-    ]);
+    $stats->refresh();
+
+    expect($stats->total_drops)->toBe(3)
+        ->and($stats->consecutive_common_drops)->toBe(0);
 });
 
 test('loot drop pagination works', function (): void {
