@@ -57,14 +57,11 @@ class LootDropJob implements ShouldQueue
 
     public function failed(Throwable $exception): void
     {
-        Log::build([
-            'driver' => 'single',
-            'path' => storage_path('logs/loot-errors.log'),
-        ])->error('Loot drop job failed', [
+        Log::channel('loot-errors')->error('Loot drop job failed', [
             'user_id' => $this->userId,
             'source' => $this->source,
             'legendary_multiplier' => $this->legendaryMultiplier,
-            'exception' => $exception->getMessage(),
+            'exception' => $exception,
         ]);
     }
 }
