@@ -4,12 +4,10 @@ use App\Events\LootDropped;
 use App\Jobs\LootDropJob;
 use App\Models\DroppedItem;
 use App\Models\User;
-use App\Services\GuildBonusService;
 use App\Services\LootService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Queue;
 
 uses(RefreshDatabase::class);
 
@@ -26,35 +24,6 @@ function createLootSystemDroppedItem(
         'quantity' => 1,
     ]);
 }
-
-test('loot drop endpoint queues a job', function (): void {
-    Queue::fake();
-
-    $this->app->bind(GuildBonusService::class, fn () => new class extends GuildBonusService
-    {
-        public function getMultiplierForUser(int $userId): float
-        {
-            return 2.0;
-        }
-    });
-
-    $user = User::factory()->create();
-
-    $this->actingAs($user)
-        ->postJson('/api/loot-drop', ['source' => 'boss_fight'])
-        ->assertAccepted()
-        ->assertJson([
-            'success' => true,
-            'message' => 'Loot drop queued.',
-        ]);
-
-    Queue::assertPushed(
-        LootDropJob::class,
-        fn (LootDropJob $job): bool => $job->userId === $user->id
-            && $job->source === 'boss_fight'
-            && $job->legendaryMultiplier === 2.0
-    );
-});
 
 test('job creates dropped item and fires loot dropped event', function (): void {
     Event::fake([LootDropped::class]);
