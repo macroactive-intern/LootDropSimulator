@@ -85,6 +85,6 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Guild::class)
             ->withPivot('role', 'joined_at', 'contributed_gold')
-            ->using(GuildUser::class);
+            ->using(GuildMember::class);
     }
 }

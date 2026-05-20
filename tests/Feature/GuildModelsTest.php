@@ -3,6 +3,7 @@
 use App\Models\Guild;
 use App\Models\GuildEvent;
 use App\Models\GuildInvite;
+use App\Models\GuildMember;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -51,6 +52,7 @@ test('guild models expose their relationships', function (): void {
         ->and($creator->guildEventsActed()->first()?->is($event))->toBeTrue()
         ->and($target->guildEventsTargeted()->first()?->is($event))->toBeTrue()
         ->and($target->guilds()->first()?->is($guild))->toBeTrue()
+        ->and($target->guilds()->first()?->pivot)->toBeInstanceOf(GuildMember::class)
         ->and($target->guilds()->first()?->pivot->role)->toBe('officer')
         ->and($target->guilds()->first()?->pivot->contributed_gold)->toBe(250)
         ->and($guild->treasury_balance)->toBe(500)

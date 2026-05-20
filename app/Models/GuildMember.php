@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
-class GuildUser extends Pivot
+class GuildMember extends Pivot
 {
     public $timestamps = false;
 
@@ -24,5 +25,15 @@ class GuildUser extends Pivot
             'joined_at' => 'datetime',
             'contributed_gold' => 'integer',
         ];
+    }
+
+    public function guild(): BelongsTo
+    {
+        return $this->belongsTo(Guild::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }

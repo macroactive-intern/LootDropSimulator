@@ -44,6 +44,6 @@ class Guild extends Model
     {
         return $this->belongsToMany(User::class)
             ->withPivot('role', 'joined_at', 'contributed_gold')
-            ->using(GuildUser::class);
+            ->using(GuildMember::class);
     }
 }
