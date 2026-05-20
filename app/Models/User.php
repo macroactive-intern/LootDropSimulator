@@ -59,4 +59,24 @@ class User extends Authenticatable
     {
         return $this->hasOne(UserLootStat::class);
     }
+
+    public function createdGuilds(): HasMany
+    {
+        return $this->hasMany(Guild::class, 'created_by');
+    }
+
+    public function sentGuildInvites(): HasMany
+    {
+        return $this->hasMany(GuildInvite::class, 'invited_by');
+    }
+
+    public function guildEventsActed(): HasMany
+    {
+        return $this->hasMany(GuildEvent::class, 'actor_id');
+    }
+
+    public function guildEventsTargeted(): HasMany
+    {
+        return $this->hasMany(GuildEvent::class, 'target_id');
+    }
 }
