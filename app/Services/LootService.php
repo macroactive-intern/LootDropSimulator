@@ -75,6 +75,16 @@ class LootService
             ->values()
             ->all();
 
-        return (new LootTable($items))->roll($legendaryMultiplier);
+        return $this->lootTableForItems($items)->roll($legendaryMultiplier);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $items
+     */
+    private function lootTableForItems(array $items): LootTable
+    {
+        return app()->makeWith(LootTable::class, [
+            'items' => $items,
+        ]);
     }
 }
