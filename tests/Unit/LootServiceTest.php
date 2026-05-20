@@ -3,7 +3,9 @@
 use App\Events\LootDropped;
 use App\Models\User;
 use App\Models\UserLootStat;
+use App\Services\LootTable;
 use App\Services\LootService;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 
@@ -82,4 +84,70 @@ test('it guarantees rare or higher after ten consecutive commons', function (): 
 
     expect($droppedItem->item_name)->toBe('Rare Shield')
         ->and($droppedItem->rarity)->toBe('rare');
+});
+
+test('it rolls back the dropped item if event dispatch fails', function (): void {
+    config()->set('loot.items', [
+        [
+            'name' => 'Guaranteed Sword',
+            'weight' => 1,
+            'rarity' => 'common',
+            'stackable' => false,
+            'max_stack' => 1,
+        ],
+    ]);
+
+    $user = User::factory()->create();
+
+    $failingDispatcher = new class implements Dispatcher
+    {
+        public function listen($events, $listener = null): void
+        {
+        }
+
+        public function hasListeners($eventName): bool
+        {
+            return true;
+        }
+
+        public function subscribe($subscriber): void
+        {
+        }
+
+        public function until($event, $payload = []): mixed
+        {
+            throw new RuntimeException('Listener failed.');
+        }
+
+        public function dispatch($event, $payload = [], $halt = false): mixed
+        {
+            throw new RuntimeException('Listener failed.');
+        }
+
+        public function push($event, $payload = []): void
+        {
+        }
+
+        public function flush($event): void
+        {
+        }
+
+        public function forget($event): void
+        {
+        }
+
+        public function forgetPushed(): void
+        {
+        }
+    };
+
+    $service = new LootService(app(LootTable::class), $failingDispatcher);
+
+    expect(fn () => $service->roll($user->id, 'test_chest'))
+        ->toThrow(RuntimeException::class, 'Listener failed.');
+
+    $this->assertDatabaseMissing('dropped_items', [
+        'user_id' => $user->id,
+        'item_name' => 'Guaranteed Sword',
+    ]);
 });

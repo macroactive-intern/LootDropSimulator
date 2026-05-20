@@ -12,6 +12,8 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    // Disable Laravel's listener auto-discovery; loot events are registered
+    // explicitly in App\Providers\EventServiceProvider.
     ->withEvents(false)
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([

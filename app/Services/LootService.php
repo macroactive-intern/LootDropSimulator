@@ -6,6 +6,7 @@ use App\Events\LootDropped;
 use App\Models\DroppedItem;
 use App\Models\UserLootStat;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Support\Facades\DB;
 
 class LootService
 {
@@ -20,21 +21,23 @@ class LootService
         string $source,
         float $legendaryMultiplier = 1.0
     ): DroppedItem {
-        $loot = $this->shouldForceRareOrHigher($userId)
-            ? $this->rollRareOrHigher($legendaryMultiplier)
-            : $this->lootTable->roll($legendaryMultiplier);
+        return DB::transaction(function () use ($userId, $source, $legendaryMultiplier): DroppedItem {
+            $loot = $this->shouldForceRareOrHigher($userId)
+                ? $this->rollRareOrHigher($legendaryMultiplier)
+                : $this->lootTable->roll($legendaryMultiplier);
 
-        $droppedItem = DroppedItem::query()->create([
-            'user_id' => $userId,
-            'item_name' => $loot['name'],
-            'rarity' => $loot['rarity'],
-            'source' => $source,
-            'quantity' => $loot['stackable'] ? random_int(1, (int) $loot['max_stack']) : 1,
-        ]);
+            $droppedItem = DroppedItem::query()->create([
+                'user_id' => $userId,
+                'item_name' => $loot['name'],
+                'rarity' => $loot['rarity'],
+                'source' => $source,
+                'quantity' => $loot['stackable'] ? random_int(1, (int) $loot['max_stack']) : 1,
+            ]);
 
-        $this->events->dispatch(new LootDropped($droppedItem));
+            $this->events->dispatch(new LootDropped($droppedItem));
 
-        return $droppedItem;
+            return $droppedItem;
+        });
     }
 
     private function shouldForceRareOrHigher(int $userId): bool
