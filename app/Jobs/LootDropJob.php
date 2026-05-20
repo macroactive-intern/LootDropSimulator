@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Services\LootService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -37,6 +38,21 @@ class LootDropJob implements ShouldQueue
             $this->source,
             $this->legendaryMultiplier,
         );
+    }
+
+    /**
+     * Prevent multiple queued loot rolls from evaluating the same user's pity
+     * counter at the same time.
+     *
+     * @return array<int, object>
+     */
+    public function middleware(): array
+    {
+        return [
+            (new WithoutOverlapping("loot-drop-user:{$this->userId}"))
+                ->releaseAfter(5)
+                ->expireAfter(300),
+        ];
     }
 
     public function failed(Throwable $exception): void

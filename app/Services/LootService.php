@@ -22,7 +22,12 @@ class LootService
         float $legendaryMultiplier = 1.0
     ): DroppedItem {
         return DB::transaction(function () use ($userId, $source, $legendaryMultiplier): DroppedItem {
-            $loot = $this->shouldForceRareOrHigher($userId)
+            $stats = UserLootStat::query()
+                ->where('user_id', $userId)
+                ->lockForUpdate()
+                ->first();
+
+            $loot = $this->shouldForceRareOrHigher($stats)
                 ? $this->rollRareOrHigher($legendaryMultiplier)
                 : $this->lootTable->roll($legendaryMultiplier);
 
@@ -40,12 +45,9 @@ class LootService
         });
     }
 
-    private function shouldForceRareOrHigher(int $userId): bool
+    private function shouldForceRareOrHigher(?UserLootStat $stats): bool
     {
-        return UserLootStat::query()
-            ->where('user_id', $userId)
-            ->where('consecutive_common_drops', '>=', 10)
-            ->exists();
+        return ($stats?->consecutive_common_drops ?? 0) >= 10;
     }
 
     /**
