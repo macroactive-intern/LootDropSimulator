@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Events\LootDropped;
 use App\Jobs\LootDropJob;
 use App\Models\DroppedItem;
 use App\Models\User;
 use App\Models\UserLootStat;
 use App\Services\GuildBonusService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -146,5 +148,62 @@ class LootControllerTest extends TestCase
                 'total_drops' => 2,
                 'legendary_count' => 1,
             ]);
+    }
+
+    public function test_admin_can_manually_grant_configured_loot(): void
+    {
+        Event::fake([LootDropped::class]);
+
+        $admin = User::factory()->create(['is_admin' => true]);
+        $user = User::factory()->create();
+
+        $this->actingAs($admin)
+            ->postJson('/api/admin/loot-grant', [
+                'user_id' => $user->id,
+                'item_name' => 'Legendary Ring',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.item_name', 'Legendary Ring')
+            ->assertJsonPath('data.rarity', 'legendary')
+            ->assertJsonPath('data.source', 'admin_grant');
+
+        $droppedItem = DroppedItem::query()->firstOrFail();
+
+        $this->assertSame($user->id, $droppedItem->user_id);
+        $this->assertSame('Legendary Ring', $droppedItem->item_name);
+        $this->assertSame('legendary', $droppedItem->rarity);
+        $this->assertSame('admin_grant', $droppedItem->source);
+
+        Event::assertDispatched(
+            LootDropped::class,
+            fn (LootDropped $event): bool => $event->droppedItem->is($droppedItem)
+        );
+    }
+
+    public function test_non_admin_cannot_manually_grant_loot(): void
+    {
+        $user = User::factory()->create();
+        $targetUser = User::factory()->create();
+
+        $this->actingAs($user)
+            ->postJson('/api/admin/loot-grant', [
+                'user_id' => $targetUser->id,
+                'item_name' => 'Legendary Ring',
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_admin_loot_grant_requires_configured_item(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $user = User::factory()->create();
+
+        $this->actingAs($admin)
+            ->postJson('/api/admin/loot-grant', [
+                'user_id' => $user->id,
+                'item_name' => 'Imaginary Wand',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('item_name');
     }
 }

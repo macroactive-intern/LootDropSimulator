@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\LootDropped;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\DroppedItemResource;
 use App\Jobs\LootDropJob;
@@ -10,6 +11,7 @@ use App\Models\UserLootStat;
 use App\Services\GuildBonusService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class LootController extends Controller
 {
@@ -75,5 +77,32 @@ class LootController extends Controller
                 ->where('rarity', 'legendary')
                 ->count(),
         ]);
+    }
+
+    public function grant(Request $request): JsonResponse
+    {
+        $items = collect(config('loot.items', []));
+        $itemNames = $items->pluck('name')->all();
+
+        $data = $request->validate([
+            'user_id' => ['required', 'integer', 'exists:users,id'],
+            'item_name' => ['required', 'string', Rule::in($itemNames)],
+        ]);
+
+        $item = $items->firstWhere('name', $data['item_name']);
+
+        $droppedItem = DroppedItem::query()->create([
+            'user_id' => $data['user_id'],
+            'item_name' => $item['name'],
+            'rarity' => $item['rarity'],
+            'source' => 'admin_grant',
+            'quantity' => 1,
+        ]);
+
+        event(new LootDropped($droppedItem));
+
+        return (new DroppedItemResource($droppedItem))
+            ->response()
+            ->setStatusCode(201);
     }
 }

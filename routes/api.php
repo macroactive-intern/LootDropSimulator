@@ -9,4 +9,7 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::post('/loot-drop', [LootController::class, 'store']);
     Route::get('/loot-drops', [LootController::class, 'index']);
     Route::get('/loot-drops/stats', [LootController::class, 'stats']);
+
+    Route::post('/admin/loot-grant', [LootController::class, 'grant'])
+        ->middleware('admin');
 });
