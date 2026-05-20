@@ -214,6 +214,24 @@ test('non admin cannot manually grant loot', function (): void {
         ->assertForbidden();
 });
 
+test('admin middleware returns json for plain api requests', function (): void {
+    configureAdminGrantLootItems();
+
+    $user = User::factory()->create();
+    $targetUser = User::factory()->create();
+
+    $this->actingAs($user)
+        ->post('/api/admin/loot-grant', [
+            'user_id' => $targetUser->id,
+            'item_name' => 'Legendary Ring',
+        ])
+        ->assertForbidden()
+        ->assertHeader('content-type', 'application/json')
+        ->assertExactJson([
+            'message' => 'Admin access required.',
+        ]);
+});
+
 test('is admin cannot be set through mass assignment', function (): void {
     $user = User::query()->create([
         'name' => 'Not Admin',
