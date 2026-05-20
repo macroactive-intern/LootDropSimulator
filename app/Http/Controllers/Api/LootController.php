@@ -12,6 +12,7 @@ use App\Services\GuildBonusService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class LootController extends Controller
@@ -103,15 +104,19 @@ class LootController extends Controller
 
         $item = $items->firstWhere('name', $data['item_name']);
 
-        $droppedItem = DroppedItem::query()->create([
-            'user_id' => $data['user_id'],
-            'item_name' => $item['name'],
-            'rarity' => $item['rarity'],
-            'source' => 'admin_grant',
-            'quantity' => 1,
-        ]);
+        $droppedItem = DB::transaction(function () use ($data, $item): DroppedItem {
+            $droppedItem = DroppedItem::query()->create([
+                'user_id' => $data['user_id'],
+                'item_name' => $item['name'],
+                'rarity' => $item['rarity'],
+                'source' => 'admin_grant',
+                'quantity' => 1,
+            ]);
 
-        event(new LootDropped($droppedItem));
+            event(new LootDropped($droppedItem));
+
+            return $droppedItem;
+        });
 
         return (new DroppedItemResource($droppedItem))
             ->response()

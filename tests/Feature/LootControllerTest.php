@@ -200,6 +200,31 @@ test('admin can manually grant configured loot', function (): void {
     );
 });
 
+test('admin loot grant rolls back if loot dropped event handling fails', function (): void {
+    configureAdminGrantLootItems();
+
+    $admin = createAdminUser();
+    $user = User::factory()->create();
+
+    Event::listen(LootDropped::class, function (): void {
+        throw new \RuntimeException('Stats listener failed.');
+    });
+
+    $this->withoutExceptionHandling();
+
+    expect(fn () => $this->actingAs($admin)
+        ->postJson('/api/admin/loot-grant', [
+            'user_id' => $user->id,
+            'item_name' => 'Legendary Ring',
+        ]))->toThrow(\RuntimeException::class, 'Stats listener failed.');
+
+    $this->assertDatabaseMissing('dropped_items', [
+        'user_id' => $user->id,
+        'item_name' => 'Legendary Ring',
+        'source' => 'admin_grant',
+    ]);
+});
+
 test('non admin cannot manually grant loot', function (): void {
     configureAdminGrantLootItems();
 
