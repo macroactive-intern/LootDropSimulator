@@ -114,6 +114,15 @@ test('authenticated users can list paginated loot drops with rarity filter', fun
         ]);
 });
 
+test('loot drop rarity filter must match a configured rarity', function (): void {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->getJson('/api/loot-drops?rarity=garbage')
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('rarity');
+});
+
 test('authenticated users can view their loot stats', function (): void {
     $user = User::factory()->create();
 

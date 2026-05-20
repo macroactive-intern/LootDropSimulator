@@ -38,8 +38,14 @@ class LootController extends Controller
 
     public function index(Request $request)
     {
+        $rarities = collect(config('loot.items', []))
+            ->pluck('rarity')
+            ->unique()
+            ->values()
+            ->all();
+
         $data = $request->validate([
-            'rarity' => ['sometimes', 'string', 'max:255'],
+            'rarity' => ['sometimes', 'string', Rule::in($rarities)],
         ]);
 
         $droppedItems = DroppedItem::query()
