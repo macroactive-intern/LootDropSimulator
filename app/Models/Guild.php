@@ -40,10 +40,15 @@ class Guild extends Model
         return $this->hasMany(GuildEvent::class);
     }
 
-    public function members(): BelongsToMany
+    public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class)
             ->withPivot('role', 'joined_at', 'contributed_gold')
             ->using(GuildMember::class);
+    }
+
+    public function members(): BelongsToMany
+    {
+        return $this->users();
     }
 }

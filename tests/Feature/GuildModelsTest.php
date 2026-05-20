@@ -21,7 +21,7 @@ test('guild models expose their relationships', function (): void {
         'treasury_balance' => 500,
         'is_open' => true,
     ]);
-    $guild->members()->attach($target->id, [
+    $guild->users()->attach($target->id, [
         'role' => 'officer',
         'joined_at' => now(),
         'contributed_gold' => 250,
@@ -46,6 +46,7 @@ test('guild models expose their relationships', function (): void {
     expect($guild->creator->is($creator))->toBeTrue()
         ->and($guild->invites()->first()?->is($invite))->toBeTrue()
         ->and($guild->events()->first()?->is($event))->toBeTrue()
+        ->and($guild->users()->first()?->is($target))->toBeTrue()
         ->and($guild->members()->first()?->is($target))->toBeTrue()
         ->and($creator->createdGuilds()->first()?->is($guild))->toBeTrue()
         ->and($creator->sentGuildInvites()->first()?->is($invite))->toBeTrue()
