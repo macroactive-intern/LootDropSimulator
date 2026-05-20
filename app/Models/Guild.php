@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Guild extends Model
@@ -37,5 +38,12 @@ class Guild extends Model
     public function events(): HasMany
     {
         return $this->hasMany(GuildEvent::class);
+    }
+
+    public function members(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class)
+            ->withPivot('role', 'joined_at', 'contributed_gold')
+            ->using(GuildUser::class);
     }
 }
