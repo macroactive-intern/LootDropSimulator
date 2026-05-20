@@ -115,6 +115,16 @@ test('loot drop pagination works', function (): void {
 });
 
 test('loot drop rarity filtering works', function (): void {
+    config()->set('loot.items', [
+        [
+            'name' => 'Legendary Ring',
+            'weight' => 1,
+            'rarity' => 'legendary',
+            'stackable' => false,
+            'max_stack' => 1,
+        ],
+    ]);
+
     $user = User::factory()->create();
 
     createLootSystemDroppedItem($user, itemName: 'Common Sword', rarity: 'common');
