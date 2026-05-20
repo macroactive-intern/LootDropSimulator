@@ -71,11 +71,16 @@ class LootController extends Controller
 
     public function globalStats(): JsonResponse
     {
+        $stats = DroppedItem::query()
+            ->selectRaw(
+                'COUNT(*) as total_drops, COALESCE(SUM(CASE WHEN rarity = ? THEN 1 ELSE 0 END), 0) as legendary_count',
+                ['legendary']
+            )
+            ->first();
+
         return response()->json([
-            'total_drops' => DroppedItem::query()->count(),
-            'legendary_count' => DroppedItem::query()
-                ->where('rarity', 'legendary')
-                ->count(),
+            'total_drops' => (int) $stats->total_drops,
+            'legendary_count' => (int) $stats->legendary_count,
         ]);
     }
 
