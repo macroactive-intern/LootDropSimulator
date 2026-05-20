@@ -62,6 +62,7 @@ class LootController extends Controller
             'user_id' => $request->user()->id,
             'total_drops' => $stats?->total_drops ?? 0,
             'legendary_count' => $stats?->legendary_count ?? 0,
+            'consecutive_common_drops' => $stats?->consecutive_common_drops ?? 0,
             'last_drop_at' => $stats?->last_drop_at?->toISOString(),
         ]);
     }

@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Events\LootDropped;
 use App\Models\User;
+use App\Models\UserLootStat;
 use App\Services\LootService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
@@ -50,5 +51,43 @@ class LootServiceTest extends TestCase
             LootDropped::class,
             fn (LootDropped $event): bool => $event->droppedItem->is($droppedItem)
         );
+    }
+
+    public function test_it_guarantees_rare_or_higher_after_ten_consecutive_commons(): void
+    {
+        Event::fake([LootDropped::class]);
+
+        config()->set('loot.items', [
+            [
+                'name' => 'Common Sword',
+                'weight' => 100,
+                'rarity' => 'common',
+                'stackable' => false,
+                'max_stack' => 1,
+            ],
+            [
+                'name' => 'Rare Shield',
+                'weight' => 1,
+                'rarity' => 'rare',
+                'stackable' => false,
+                'max_stack' => 1,
+            ],
+        ]);
+
+        $user = User::factory()->create();
+        UserLootStat::query()->create([
+            'user_id' => $user->id,
+            'total_drops' => 10,
+            'legendary_count' => 0,
+            'consecutive_common_drops' => 10,
+        ]);
+
+        $droppedItem = app(LootService::class)->roll(
+            userId: $user->id,
+            source: 'pity_test',
+        );
+
+        $this->assertSame('Rare Shield', $droppedItem->item_name);
+        $this->assertSame('rare', $droppedItem->rarity);
     }
 }

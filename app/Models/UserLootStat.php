@@ -11,6 +11,7 @@ class UserLootStat extends Model
         'user_id',
         'total_drops',
         'legendary_count',
+        'consecutive_common_drops',
         'last_drop_at',
     ];
 
@@ -19,6 +20,7 @@ class UserLootStat extends Model
         return [
             'total_drops' => 'integer',
             'legendary_count' => 'integer',
+            'consecutive_common_drops' => 'integer',
             'last_drop_at' => 'datetime',
         ];
     }

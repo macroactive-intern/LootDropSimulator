@@ -93,6 +93,7 @@ class LootSystemTest extends TestCase
             'user_id' => $user->id,
             'total_drops' => 1,
             'legendary_count' => 1,
+            'consecutive_common_drops' => 0,
         ]);
 
         $this->assertNotNull($user->lootStat()->first()?->last_drop_at);
@@ -104,6 +105,28 @@ class LootSystemTest extends TestCase
                     && $context['user_id'] === $user->id
                     && $context['rarity'] === 'legendary'
             ));
+    }
+
+    public function test_common_streak_increments_and_resets_on_rare_or_higher_drop(): void
+    {
+        $user = User::factory()->create();
+
+        event(new LootDropped($this->createDroppedItem($user, rarity: 'common')));
+        event(new LootDropped($this->createDroppedItem($user, rarity: 'common')));
+
+        $this->assertDatabaseHas('user_loot_stats', [
+            'user_id' => $user->id,
+            'total_drops' => 2,
+            'consecutive_common_drops' => 2,
+        ]);
+
+        event(new LootDropped($this->createDroppedItem($user, itemName: 'Rare Shield', rarity: 'rare')));
+
+        $this->assertDatabaseHas('user_loot_stats', [
+            'user_id' => $user->id,
+            'total_drops' => 3,
+            'consecutive_common_drops' => 0,
+        ]);
     }
 
     public function test_loot_drop_pagination_works(): void

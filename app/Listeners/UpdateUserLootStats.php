@@ -32,5 +32,15 @@ class UpdateUserLootStats
         if ($droppedItem->rarity === 'legendary') {
             $stats->increment('legendary_count');
         }
+
+        if ($droppedItem->rarity === 'common') {
+            $stats->increment('consecutive_common_drops');
+
+            return;
+        }
+
+        $stats->forceFill([
+            'consecutive_common_drops' => 0,
+        ])->save();
     }
 }

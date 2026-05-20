@@ -117,6 +117,7 @@ class LootControllerTest extends TestCase
                 'user_id' => $user->id,
                 'total_drops' => 12,
                 'legendary_count' => 2,
+                'consecutive_common_drops' => 0,
             ]);
     }
 
