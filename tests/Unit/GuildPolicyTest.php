@@ -2,10 +2,15 @@
 
 use App\Models\Guild;
 use App\Models\User;
+use App\Providers\AuthServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 
 uses(RefreshDatabase::class);
+
+test('auth service provider is registered for guild policies', function (): void {
+    expect(require base_path('bootstrap/providers.php'))->toContain(AuthServiceProvider::class);
+});
 
 function createGuildPolicyGuild(User $creator): Guild
 {
