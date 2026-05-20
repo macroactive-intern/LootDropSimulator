@@ -12,6 +12,14 @@ use Illuminate\Support\Facades\Queue;
 
 uses(RefreshDatabase::class);
 
+function createAdminUser(): User
+{
+    $user = User::factory()->create();
+    $user->forceFill(['is_admin' => true])->save();
+
+    return $user;
+}
+
 test('loot drop endpoint requires authentication', function (): void {
     $this->postJson('/api/loot-drop', ['source' => 'daily_reward'])
         ->assertUnauthorized();
@@ -143,7 +151,7 @@ test('global stats are public', function (): void {
 test('admin can manually grant configured loot', function (): void {
     Event::fake([LootDropped::class]);
 
-    $admin = User::factory()->create(['is_admin' => true]);
+    $admin = createAdminUser();
     $user = User::factory()->create();
 
     $this->actingAs($admin)
@@ -181,8 +189,19 @@ test('non admin cannot manually grant loot', function (): void {
         ->assertForbidden();
 });
 
+test('is admin cannot be set through mass assignment', function (): void {
+    $user = User::query()->create([
+        'name' => 'Not Admin',
+        'email' => 'not-admin@example.com',
+        'password' => 'password',
+        'is_admin' => true,
+    ]);
+
+    expect($user->refresh()->is_admin)->toBeFalse();
+});
+
 test('admin loot grant requires configured item', function (): void {
-    $admin = User::factory()->create(['is_admin' => true]);
+    $admin = createAdminUser();
     $user = User::factory()->create();
 
     $this->actingAs($admin)
