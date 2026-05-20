@@ -20,6 +20,19 @@ function createAdminUser(): User
     return $user;
 }
 
+function configureAdminGrantLootItems(): void
+{
+    config()->set('loot.items', [
+        [
+            'name' => 'Legendary Ring',
+            'weight' => 1,
+            'rarity' => 'legendary',
+            'stackable' => false,
+            'max_stack' => 1,
+        ],
+    ]);
+}
+
 test('loot drop endpoint requires authentication', function (): void {
     $this->postJson('/api/loot-drop', ['source' => 'daily_reward'])
         ->assertUnauthorized();
@@ -150,6 +163,7 @@ test('global stats are public', function (): void {
 
 test('admin can manually grant configured loot', function (): void {
     Event::fake([LootDropped::class]);
+    configureAdminGrantLootItems();
 
     $admin = createAdminUser();
     $user = User::factory()->create();
@@ -178,6 +192,8 @@ test('admin can manually grant configured loot', function (): void {
 });
 
 test('non admin cannot manually grant loot', function (): void {
+    configureAdminGrantLootItems();
+
     $user = User::factory()->create();
     $targetUser = User::factory()->create();
 
