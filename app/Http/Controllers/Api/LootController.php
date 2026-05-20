@@ -11,6 +11,7 @@ use App\Models\UserLootStat;
 use App\Services\GuildBonusService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Validation\Rule;
 
 class LootController extends Controller
@@ -36,7 +37,7 @@ class LootController extends Controller
         ], 202);
     }
 
-    public function index(Request $request)
+    public function index(Request $request): AnonymousResourceCollection
     {
         $rarities = collect(config('loot.items', []))
             ->pluck('rarity')
