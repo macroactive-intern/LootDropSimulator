@@ -68,6 +68,8 @@ test('authenticated users can queue a loot drop', function (): void {
 });
 
 test('authenticated users can list paginated loot drops with rarity filter', function (): void {
+    configureAdminGrantLootItems();
+
     $user = User::factory()->create();
     $otherUser = User::factory()->create();
 
