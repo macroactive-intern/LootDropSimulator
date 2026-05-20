@@ -70,7 +70,7 @@ test('loot dropped listeners execute and update user stats', function (): void {
         'consecutive_common_drops' => 0,
     ]);
 
-    expect($user->lootStat()->first()?->last_drop_at)->not->toBeNull();
+    $this->assertNotNull($user->lootStat()->first()?->last_drop_at);
 
     Log::shouldHaveReceived('info')
         ->once()
