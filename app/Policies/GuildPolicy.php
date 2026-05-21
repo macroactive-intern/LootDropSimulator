@@ -7,6 +7,11 @@ use App\Models\User;
 
 class GuildPolicy
 {
+    /**
+     * @var array<string, string|null>
+     */
+    private array $roleCache = [];
+
     public function viewAny(User $user): bool
     {
         return true;
@@ -96,7 +101,13 @@ class GuildPolicy
 
     private function roleFor(User $user, Guild $guild): ?string
     {
-        return $guild->users()
+        $cacheKey = $guild->id.':'.$user->id;
+
+        if (array_key_exists($cacheKey, $this->roleCache)) {
+            return $this->roleCache[$cacheKey];
+        }
+
+        return $this->roleCache[$cacheKey] = $guild->users()
             ->whereKey($user->id)
             ->first()
             ?->pivot

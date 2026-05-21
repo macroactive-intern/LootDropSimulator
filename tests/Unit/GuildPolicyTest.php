@@ -2,8 +2,10 @@
 
 use App\Models\Guild;
 use App\Models\User;
+use App\Policies\GuildPolicy;
 use App\Providers\AuthServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 uses(RefreshDatabase::class);
@@ -59,6 +61,29 @@ test('guild creator can delete only when they are the leader', function (): void
     attachGuildPolicyMember($guild, $creator, 'leader');
 
     expect(Gate::forUser($creator)->allows('delete', $guild))->toBeTrue();
+});
+
+test('guild policy caches role lookups within the policy instance', function (): void {
+    $creator = User::factory()->create();
+    $leader = User::factory()->create();
+    $member = User::factory()->create();
+    $guild = createGuildPolicyGuild($creator);
+    $policy = new GuildPolicy();
+
+    attachGuildPolicyMember($guild, $leader, 'leader');
+    attachGuildPolicyMember($guild, $member, 'member');
+
+    DB::enableQueryLog();
+
+    expect($policy->changeRole($leader, $guild, $member))->toBeTrue()
+        ->and($policy->promote($leader, $guild, $member))->toBeTrue()
+        ->and($policy->kick($leader, $guild, $member))->toBeTrue();
+
+    $membershipQueries = collect(DB::getQueryLog())
+        ->filter(fn (array $query): bool => str_contains($query['query'], 'guild_user'))
+        ->count();
+
+    expect($membershipQueries)->toBe(2);
 });
 
 test('guild officers can invite kick members deposit and view events only', function (): void {
