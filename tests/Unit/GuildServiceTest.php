@@ -287,3 +287,111 @@ test('change role allows demoting a leader when another leader remains', functio
     expect($guild->users()->whereKey($secondLeader->id)->firstOrFail()->pivot->role)
         ->toBe('officer');
 });
+
+test('kick member allows leaders to kick members and officers', function (): void {
+    $leader = User::factory()->create();
+    $officer = User::factory()->create();
+    $member = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($leader, [
+        'name' => 'Leader Kick Guild',
+        'is_open' => true,
+    ]);
+    $service->joinGuild($guild, $officer);
+    $service->joinGuild($guild, $member);
+    $service->changeRole($guild, $leader, $officer, 'officer');
+
+    $service->kickMember($guild, $leader, $member);
+    $service->kickMember($guild, $leader, $officer);
+
+    expect($guild->users()->whereKey($member->id)->exists())->toBeFalse()
+        ->and($guild->users()->whereKey($officer->id)->exists())->toBeFalse()
+        ->and($guild->users()->whereKey($leader->id)->exists())->toBeTrue();
+});
+
+test('kick member allows officers to kick members only', function (): void {
+    $leader = User::factory()->create();
+    $officer = User::factory()->create();
+    $otherOfficer = User::factory()->create();
+    $member = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($leader, [
+        'name' => 'Officer Kick Guild',
+        'is_open' => true,
+    ]);
+    $service->joinGuild($guild, $officer);
+    $service->joinGuild($guild, $otherOfficer);
+    $service->joinGuild($guild, $member);
+    $service->changeRole($guild, $leader, $officer, 'officer');
+    $service->changeRole($guild, $leader, $otherOfficer, 'officer');
+
+    expect(fn () => $service->kickMember($guild, $officer, $otherOfficer))
+        ->toThrow(ValidationException::class, 'Officers can only kick members.');
+
+    $service->kickMember($guild, $officer, $member);
+
+    expect($guild->users()->whereKey($member->id)->exists())->toBeFalse()
+        ->and($guild->users()->whereKey($otherOfficer->id)->exists())->toBeTrue();
+});
+
+test('kick member rejects regular members as actors', function (): void {
+    $leader = User::factory()->create();
+    $member = User::factory()->create();
+    $target = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($leader, [
+        'name' => 'Member Kick Guild',
+        'is_open' => true,
+    ]);
+    $service->joinGuild($guild, $member);
+    $service->joinGuild($guild, $target);
+
+    expect(fn () => $service->kickMember($guild, $member, $target))
+        ->toThrow(ValidationException::class, 'Only guild leaders and officers can kick members.');
+});
+
+test('kick member rejects targets outside the guild', function (): void {
+    $leader = User::factory()->create();
+    $outsider = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($leader, [
+        'name' => 'Outsider Kick Guild',
+        'is_open' => true,
+    ]);
+
+    expect(fn () => $service->kickMember($guild, $leader, $outsider))
+        ->toThrow(ValidationException::class, 'Target user is not a member of this guild.');
+});
+
+test('kick member prevents removing the last leader', function (): void {
+    $leader = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($leader, [
+        'name' => 'Last Leader Kick Guild',
+        'is_open' => true,
+    ]);
+
+    expect(fn () => $service->kickMember($guild, $leader, $leader))
+        ->toThrow(ValidationException::class, 'A guild must always have at least one leader.');
+
+    expect($guild->users()->whereKey($leader->id)->exists())->toBeTrue();
+});
+
+test('kick member allows a leader to kick themselves when another leader remains', function (): void {
+    $leader = User::factory()->create();
+    $secondLeader = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($leader, [
+        'name' => 'Self Kick Guild',
+        'is_open' => true,
+    ]);
+    $guild->users()->attach($secondLeader->id, [
+        'role' => 'leader',
+        'joined_at' => now(),
+    ]);
+
+    $service->kickMember($guild, $leader, $leader);
+
+    expect($guild->users()->whereKey($leader->id)->exists())->toBeFalse()
+        ->and($guild->users()->whereKey($secondLeader->id)->exists())->toBeTrue();
+});

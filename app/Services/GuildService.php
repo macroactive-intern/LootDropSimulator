@@ -102,7 +102,54 @@ class GuildService
 
     public function kickMember(Guild $guild, User $actor, User $target): void
     {
-        //
+        DB::transaction(function () use ($guild, $actor, $target): void {
+            $members = DB::table('guild_user')
+                ->where('guild_id', $guild->id)
+                ->lockForUpdate()
+                ->get();
+
+            $actorMembership = $members->firstWhere('user_id', $actor->id);
+            $targetMembership = $members->firstWhere('user_id', $target->id);
+
+            if ($actorMembership === null) {
+                throw ValidationException::withMessages([
+                    'guild' => 'Only guild leaders and officers can kick members.',
+                ]);
+            }
+
+            if ($targetMembership === null) {
+                throw ValidationException::withMessages([
+                    'guild' => 'Target user is not a member of this guild.',
+                ]);
+            }
+
+            if ($actorMembership->role === 'officer' && $targetMembership->role !== 'member') {
+                throw ValidationException::withMessages([
+                    'guild' => 'Officers can only kick members.',
+                ]);
+            }
+
+            if (! in_array($actorMembership->role, ['leader', 'officer'], true)) {
+                throw ValidationException::withMessages([
+                    'guild' => 'Only guild leaders and officers can kick members.',
+                ]);
+            }
+
+            $leaderCount = $members
+                ->where('role', 'leader')
+                ->count();
+
+            if ($targetMembership->role === 'leader' && $leaderCount <= 1) {
+                throw ValidationException::withMessages([
+                    'guild' => 'A guild must always have at least one leader.',
+                ]);
+            }
+
+            DB::table('guild_user')
+                ->where('guild_id', $guild->id)
+                ->where('user_id', $target->id)
+                ->delete();
+        });
     }
 
     public function changeRole(Guild $guild, User $actor, User $target, string $role): void
