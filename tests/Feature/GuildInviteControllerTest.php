@@ -1,41 +1,19 @@
 <?php
 
-use App\Models\Guild;
 use App\Models\GuildInvite;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-function createGuildInviteControllerGuild(User $creator): Guild
-{
-    $guild = Guild::query()->create([
-        'name' => 'Invite Controller Guild',
-        'created_by' => $creator->id,
-        'is_open' => false,
-    ]);
-
-    $guild->users()->attach($creator->id, [
-        'role' => 'leader',
-        'joined_at' => now(),
-    ]);
-
-    return $guild;
-}
-
-function attachGuildInviteControllerMember(Guild $guild, User $user, string $role = 'member'): void
-{
-    $guild->users()->attach($user->id, [
-        'role' => $role,
-        'joined_at' => now(),
-    ]);
-}
-
 test('leaders and officers can create guild invites', function (): void {
     $leader = User::factory()->create();
     $officer = User::factory()->create();
-    $guild = createGuildInviteControllerGuild($leader);
-    attachGuildInviteControllerMember($guild, $officer, 'officer');
+    $guild = createTestGuild($leader, [
+        'name' => 'Invite Controller Guild',
+        'is_open' => false,
+    ]);
+    attachTestGuildMember($guild, $officer, 'officer');
 
     $this->actingAs($officer)
         ->postJson('/api/guilds/'.$guild->id.'/invites', [
@@ -56,8 +34,11 @@ test('leaders and officers can create guild invites', function (): void {
 test('regular members cannot create guild invites', function (): void {
     $leader = User::factory()->create();
     $member = User::factory()->create();
-    $guild = createGuildInviteControllerGuild($leader);
-    attachGuildInviteControllerMember($guild, $member);
+    $guild = createTestGuild($leader, [
+        'name' => 'Invite Controller Guild',
+        'is_open' => false,
+    ]);
+    attachTestGuildMember($guild, $member);
 
     $this->actingAs($member)
         ->postJson('/api/guilds/'.$guild->id.'/invites', [
@@ -70,7 +51,10 @@ test('regular members cannot create guild invites', function (): void {
 
 test('invite creation validates email payload', function (): void {
     $leader = User::factory()->create();
-    $guild = createGuildInviteControllerGuild($leader);
+    $guild = createTestGuild($leader, [
+        'name' => 'Invite Controller Guild',
+        'is_open' => false,
+    ]);
 
     $this->actingAs($leader)
         ->postJson('/api/guilds/'.$guild->id.'/invites', [
@@ -82,7 +66,10 @@ test('invite creation validates email payload', function (): void {
 
 test('invite creation rejects duplicate pending invites for the same email', function (): void {
     $leader = User::factory()->create();
-    $guild = createGuildInviteControllerGuild($leader);
+    $guild = createTestGuild($leader, [
+        'name' => 'Invite Controller Guild',
+        'is_open' => false,
+    ]);
 
     $this->actingAs($leader)
         ->postJson('/api/guilds/'.$guild->id.'/invites', [
@@ -106,7 +93,10 @@ test('invite creation rejects duplicate pending invites for the same email', fun
 test('invite token can be accepted without authentication', function (): void {
     $leader = User::factory()->create();
     $invitedUser = User::factory()->create(['email' => 'invited@example.com']);
-    $guild = createGuildInviteControllerGuild($leader);
+    $guild = createTestGuild($leader, [
+        'name' => 'Invite Controller Guild',
+        'is_open' => false,
+    ]);
 
     $invite = GuildInvite::query()->create([
         'guild_id' => $guild->id,
@@ -135,7 +125,10 @@ test('public invite acceptance rejects bad tokens', function (): void {
 
 test('public invite acceptance requires an existing user for the invited email', function (): void {
     $leader = User::factory()->create();
-    $guild = createGuildInviteControllerGuild($leader);
+    $guild = createTestGuild($leader, [
+        'name' => 'Invite Controller Guild',
+        'is_open' => false,
+    ]);
 
     $invite = GuildInvite::query()->create([
         'guild_id' => $guild->id,

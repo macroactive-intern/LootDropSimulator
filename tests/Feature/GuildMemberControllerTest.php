@@ -1,40 +1,15 @@
 <?php
 
-use App\Models\Guild;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-function createGuildMemberControllerGuild(User $creator): Guild
-{
-    $guild = Guild::query()->create([
-        'name' => 'Member Controller Guild',
-        'created_by' => $creator->id,
-        'is_open' => true,
-    ]);
-
-    $guild->users()->attach($creator->id, [
-        'role' => 'leader',
-        'joined_at' => now(),
-    ]);
-
-    return $guild;
-}
-
-function attachGuildMemberControllerMember(Guild $guild, User $user, string $role = 'member'): void
-{
-    $guild->users()->attach($user->id, [
-        'role' => $role,
-        'joined_at' => now(),
-    ]);
-}
-
 test('guild member endpoints require authentication', function (): void {
     $leader = User::factory()->create();
     $member = User::factory()->create();
-    $guild = createGuildMemberControllerGuild($leader);
-    attachGuildMemberControllerMember($guild, $member);
+    $guild = createTestGuild($leader, ['name' => 'Member Controller Guild']);
+    attachTestGuildMember($guild, $member);
 
     $this->deleteJson('/api/guilds/'.$guild->id.'/members/'.$member->id)
         ->assertUnauthorized();
@@ -43,8 +18,8 @@ test('guild member endpoints require authentication', function (): void {
 test('leaders can kick guild members', function (): void {
     $leader = User::factory()->create();
     $member = User::factory()->create();
-    $guild = createGuildMemberControllerGuild($leader);
-    attachGuildMemberControllerMember($guild, $member);
+    $guild = createTestGuild($leader, ['name' => 'Member Controller Guild']);
+    attachTestGuildMember($guild, $member);
 
     $this->actingAs($leader)
         ->deleteJson('/api/guilds/'.$guild->id.'/members/'.$member->id)
@@ -58,10 +33,10 @@ test('officers can only kick regular members', function (): void {
     $officer = User::factory()->create();
     $otherOfficer = User::factory()->create();
     $member = User::factory()->create();
-    $guild = createGuildMemberControllerGuild($leader);
-    attachGuildMemberControllerMember($guild, $officer, 'officer');
-    attachGuildMemberControllerMember($guild, $otherOfficer, 'officer');
-    attachGuildMemberControllerMember($guild, $member);
+    $guild = createTestGuild($leader, ['name' => 'Member Controller Guild']);
+    attachTestGuildMember($guild, $officer, 'officer');
+    attachTestGuildMember($guild, $otherOfficer, 'officer');
+    attachTestGuildMember($guild, $member);
 
     $this->actingAs($officer)
         ->deleteJson('/api/guilds/'.$guild->id.'/members/'.$otherOfficer->id)
@@ -78,8 +53,8 @@ test('officers can only kick regular members', function (): void {
 test('leaders can change member roles', function (): void {
     $leader = User::factory()->create();
     $member = User::factory()->create(['name' => 'Promoted Member']);
-    $guild = createGuildMemberControllerGuild($leader);
-    attachGuildMemberControllerMember($guild, $member);
+    $guild = createTestGuild($leader, ['name' => 'Member Controller Guild']);
+    attachTestGuildMember($guild, $member);
 
     $this->actingAs($leader)
         ->putJson('/api/guilds/'.$guild->id.'/members/'.$member->id, [
@@ -98,9 +73,9 @@ test('members cannot change roles', function (): void {
     $leader = User::factory()->create();
     $member = User::factory()->create();
     $target = User::factory()->create();
-    $guild = createGuildMemberControllerGuild($leader);
-    attachGuildMemberControllerMember($guild, $member);
-    attachGuildMemberControllerMember($guild, $target);
+    $guild = createTestGuild($leader, ['name' => 'Member Controller Guild']);
+    attachTestGuildMember($guild, $member);
+    attachTestGuildMember($guild, $target);
 
     $this->actingAs($member)
         ->putJson('/api/guilds/'.$guild->id.'/members/'.$target->id, [
@@ -115,8 +90,8 @@ test('members cannot change roles', function (): void {
 test('role changes validate allowed guild roles', function (): void {
     $leader = User::factory()->create();
     $member = User::factory()->create();
-    $guild = createGuildMemberControllerGuild($leader);
-    attachGuildMemberControllerMember($guild, $member);
+    $guild = createTestGuild($leader, ['name' => 'Member Controller Guild']);
+    attachTestGuildMember($guild, $member);
 
     $this->actingAs($leader)
         ->putJson('/api/guilds/'.$guild->id.'/members/'.$member->id, [

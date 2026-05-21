@@ -1,32 +1,17 @@
 <?php
 
-use App\Models\Guild;
 use App\Models\GuildEvent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-function createGuildTreasuryOverdraftGuild(User $leader, int $balance): Guild
-{
-    $guild = Guild::query()->create([
-        'name' => 'Overdraft Guard Guild '.str()->uuid(),
-        'created_by' => $leader->id,
-        'treasury_balance' => $balance,
-        'is_open' => true,
-    ]);
-
-    $guild->users()->attach($leader->id, [
-        'role' => 'leader',
-        'joined_at' => now(),
-    ]);
-
-    return $guild;
-}
-
 test('competing treasury withdrawals cannot overdraw the balance', function (): void {
     $leader = User::factory()->create();
-    $guild = createGuildTreasuryOverdraftGuild($leader, 100);
+    $guild = createTestGuild($leader, [
+        'name' => 'Overdraft Guard Guild '.str()->uuid(),
+        'treasury_balance' => 100,
+    ]);
 
     $firstWithdrawal = $this->actingAs($leader)
         ->postJson('/api/guilds/'.$guild->id.'/treasury/withdraw', [
@@ -69,7 +54,10 @@ test('treasury overdraft protection still uses a row lock before balance updates
 
 test('failed competing withdrawals leave treasury balance non negative', function (): void {
     $leader = User::factory()->create();
-    $guild = createGuildTreasuryOverdraftGuild($leader, 50);
+    $guild = createTestGuild($leader, [
+        'name' => 'Overdraft Guard Guild '.str()->uuid(),
+        'treasury_balance' => 50,
+    ]);
 
     for ($attempt = 1; $attempt <= 3; $attempt++) {
         $this->actingAs($leader)

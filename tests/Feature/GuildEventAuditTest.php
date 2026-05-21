@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Guild;
 use App\Models\GuildEvent;
 use App\Models\User;
 use App\Services\GuildService;
@@ -8,19 +7,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-function createGuildEventAuditGuild(User $leader): Guild
+function createAuditTestGuild(User $leader)
 {
-    $guild = Guild::query()->create([
-        'name' => 'Audit Guild '.str()->uuid(),
-        'created_by' => $leader->id,
-        'is_open' => true,
-    ]);
-
-    $guild->users()->attach($leader->id, [
-        'role' => 'leader',
-        'joined_at' => now(),
-    ]);
-
+    $guild = createTestGuild($leader, ['name' => 'Audit Guild '.str()->uuid()]);
     GuildEvent::query()->delete();
 
     return $guild;
@@ -29,7 +18,7 @@ function createGuildEventAuditGuild(User $leader): Guild
 test('guild member observer logs join event metadata', function (): void {
     $leader = User::factory()->create();
     $member = User::factory()->create();
-    $guild = createGuildEventAuditGuild($leader);
+    $guild = createAuditTestGuild($leader);
     $joinedAt = now()->startOfSecond();
 
     $this->travelTo($joinedAt);
@@ -52,7 +41,7 @@ test('guild member observer logs join event metadata', function (): void {
 test('guild member observer logs leave event metadata', function (): void {
     $leader = User::factory()->create();
     $member = User::factory()->create();
-    $guild = createGuildEventAuditGuild($leader);
+    $guild = createAuditTestGuild($leader);
     $joinedAt = now()->subHour()->startOfSecond();
     $guild->users()->attach($member->id, [
         'role' => 'member',
@@ -80,7 +69,7 @@ test('guild member observer logs leave event metadata', function (): void {
 test('guild member observer logs kick event metadata separately from leave', function (): void {
     $leader = User::factory()->create();
     $member = User::factory()->create();
-    $guild = createGuildEventAuditGuild($leader);
+    $guild = createAuditTestGuild($leader);
     $joinedAt = now()->subHour()->startOfSecond();
     $guild->users()->attach($member->id, [
         'role' => 'member',
@@ -113,7 +102,7 @@ test('guild member observer logs kick event metadata separately from leave', fun
 test('guild member observer logs promote event metadata', function (): void {
     $leader = User::factory()->create();
     $member = User::factory()->create();
-    $guild = createGuildEventAuditGuild($leader);
+    $guild = createAuditTestGuild($leader);
     app(GuildService::class)->joinGuild($guild, $member);
     GuildEvent::query()->delete();
 
@@ -135,7 +124,7 @@ test('guild member observer logs promote event metadata', function (): void {
 test('guild member observer logs demote event metadata', function (): void {
     $leader = User::factory()->create();
     $member = User::factory()->create();
-    $guild = createGuildEventAuditGuild($leader);
+    $guild = createAuditTestGuild($leader);
     $guild->users()->attach($member->id, [
         'role' => 'officer',
         'joined_at' => now(),
@@ -160,7 +149,7 @@ test('guild member observer logs demote event metadata', function (): void {
 test('guild member observer logs the full membership audit sequence', function (): void {
     $leader = User::factory()->create();
     $member = User::factory()->create();
-    $guild = createGuildEventAuditGuild($leader);
+    $guild = createAuditTestGuild($leader);
     $service = app(GuildService::class);
 
     $service->joinGuild($guild, $member);

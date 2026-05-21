@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Guild;
 use App\Models\User;
 use App\Services\GuildBonusService;
 use App\Services\LootTable;
@@ -9,29 +8,13 @@ use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
-function createGuildBonusServiceGuild(User $creator): Guild
-{
-    return Guild::query()->create([
-        'name' => 'Bonus Guild',
-        'created_by' => $creator->id,
-        'is_open' => true,
-    ]);
-}
-
 test('leaders in any guild receive the configured legendary multiplier globally', function (): void {
     config()->set('loot.guild_leader_legendary_multiplier', 2.0);
 
     $leader = User::factory()->create();
     $member = User::factory()->create();
-    $guild = createGuildBonusServiceGuild($leader);
-    $guild->users()->attach($leader->id, [
-        'role' => 'leader',
-        'joined_at' => now(),
-    ]);
-    $guild->users()->attach($member->id, [
-        'role' => 'member',
-        'joined_at' => now(),
-    ]);
+    $guild = createTestGuild($leader, ['name' => 'Bonus Guild']);
+    attachTestGuildMember($guild, $member);
 
     $service = app(GuildBonusService::class);
 
@@ -41,11 +24,7 @@ test('leaders in any guild receive the configured legendary multiplier globally'
 
 test('guild leader multiplier lookup uses a single existence query', function (): void {
     $leader = User::factory()->create();
-    $guild = createGuildBonusServiceGuild($leader);
-    $guild->users()->attach($leader->id, [
-        'role' => 'leader',
-        'joined_at' => now(),
-    ]);
+    createTestGuild($leader, ['name' => 'Bonus Guild']);
 
     DB::flushQueryLog();
     DB::enableQueryLog();
@@ -61,11 +40,7 @@ test('guild leader multiplier is intentionally not scoped to loot source', funct
     config()->set('loot.guild_leader_legendary_multiplier', 2.0);
 
     $leader = User::factory()->create();
-    $guild = createGuildBonusServiceGuild($leader);
-    $guild->users()->attach($leader->id, [
-        'role' => 'leader',
-        'joined_at' => now(),
-    ]);
+    createTestGuild($leader, ['name' => 'Bonus Guild']);
 
     expect(app(GuildBonusService::class)->getMultiplierForUser($leader->id))->toBe(2.0);
 });
@@ -91,11 +66,7 @@ test('guild leader multiplier increases legendary drop rate', function (): void 
     mt_srand(20260521);
 
     $leader = User::factory()->create();
-    $guild = createGuildBonusServiceGuild($leader);
-    $guild->users()->attach($leader->id, [
-        'role' => 'leader',
-        'joined_at' => now(),
-    ]);
+    createTestGuild($leader, ['name' => 'Bonus Guild']);
 
     $lootTable = new LootTable(config('loot.items'));
     $baseCounts = rollGuildBonusRarities($lootTable, 1.0);

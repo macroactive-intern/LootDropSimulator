@@ -1,39 +1,14 @@
 <?php
 
-use App\Models\Guild;
 use App\Models\GuildEvent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-function createGuildTreasuryControllerGuild(User $creator): Guild
-{
-    $guild = Guild::query()->create([
-        'name' => 'Treasury Controller Guild',
-        'created_by' => $creator->id,
-        'is_open' => true,
-    ]);
-
-    $guild->users()->attach($creator->id, [
-        'role' => 'leader',
-        'joined_at' => now(),
-    ]);
-
-    return $guild;
-}
-
-function attachGuildTreasuryControllerMember(Guild $guild, User $user, string $role = 'member'): void
-{
-    $guild->users()->attach($user->id, [
-        'role' => $role,
-        'joined_at' => now(),
-    ]);
-}
-
 test('guild treasury endpoints require authentication', function (): void {
     $leader = User::factory()->create();
-    $guild = createGuildTreasuryControllerGuild($leader);
+    $guild = createTestGuild($leader, ['name' => 'Treasury Controller Guild']);
 
     $this->postJson('/api/guilds/'.$guild->id.'/treasury/deposit', [
         'amount' => 100,
@@ -43,8 +18,8 @@ test('guild treasury endpoints require authentication', function (): void {
 test('guild members can deposit into the treasury', function (): void {
     $leader = User::factory()->create();
     $member = User::factory()->create();
-    $guild = createGuildTreasuryControllerGuild($leader);
-    attachGuildTreasuryControllerMember($guild, $member);
+    $guild = createTestGuild($leader, ['name' => 'Treasury Controller Guild']);
+    attachTestGuildMember($guild, $member);
 
     $this->actingAs($member)
         ->postJson('/api/guilds/'.$guild->id.'/treasury/deposit', [
@@ -63,7 +38,7 @@ test('guild members can deposit into the treasury', function (): void {
 test('non members cannot deposit into the treasury', function (): void {
     $leader = User::factory()->create();
     $outsider = User::factory()->create();
-    $guild = createGuildTreasuryControllerGuild($leader);
+    $guild = createTestGuild($leader, ['name' => 'Treasury Controller Guild']);
 
     $this->actingAs($outsider)
         ->postJson('/api/guilds/'.$guild->id.'/treasury/deposit', [
@@ -76,7 +51,7 @@ test('non members cannot deposit into the treasury', function (): void {
 
 test('leaders can withdraw from the treasury', function (): void {
     $leader = User::factory()->create();
-    $guild = createGuildTreasuryControllerGuild($leader);
+    $guild = createTestGuild($leader, ['name' => 'Treasury Controller Guild']);
     $guild->forceFill(['treasury_balance' => 300])->save();
 
     $this->actingAs($leader)
@@ -101,8 +76,8 @@ test('leaders can withdraw from the treasury', function (): void {
 test('members cannot withdraw from the treasury', function (): void {
     $leader = User::factory()->create();
     $member = User::factory()->create();
-    $guild = createGuildTreasuryControllerGuild($leader);
-    attachGuildTreasuryControllerMember($guild, $member);
+    $guild = createTestGuild($leader, ['name' => 'Treasury Controller Guild']);
+    attachTestGuildMember($guild, $member);
     $guild->forceFill(['treasury_balance' => 300])->save();
 
     $this->actingAs($member)
@@ -117,7 +92,7 @@ test('members cannot withdraw from the treasury', function (): void {
 
 test('treasury requests validate payloads', function (): void {
     $leader = User::factory()->create();
-    $guild = createGuildTreasuryControllerGuild($leader);
+    $guild = createTestGuild($leader, ['name' => 'Treasury Controller Guild']);
 
     $this->actingAs($leader)
         ->postJson('/api/guilds/'.$guild->id.'/treasury/deposit', [

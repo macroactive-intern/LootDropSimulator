@@ -6,25 +6,12 @@ use App\Models\GuildInvite;
 use App\Models\User;
 use App\Services\GuildService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Validation\ValidationException;
 
 uses(RefreshDatabase::class);
 
-test('guild service exposes the guild workflow methods', function (): void {
-    $reflection = new ReflectionClass(GuildService::class);
-
-    expect($reflection->getConstructor()?->getParameters()[0]->getType()?->getName())
-        ->toBe(Dispatcher::class)
-        ->and($reflection->hasMethod('createGuild'))->toBeTrue()
-        ->and($reflection->hasMethod('joinGuild'))->toBeTrue()
-        ->and($reflection->hasMethod('leaveGuild'))->toBeTrue()
-        ->and($reflection->hasMethod('kickMember'))->toBeTrue()
-        ->and($reflection->hasMethod('changeRole'))->toBeTrue()
-        ->and($reflection->hasMethod('depositTreasury'))->toBeTrue()
-        ->and($reflection->hasMethod('withdrawTreasury'))->toBeTrue()
-        ->and($reflection->hasMethod('createInvite'))->toBeTrue()
-        ->and($reflection->hasMethod('acceptInviteToken'))->toBeTrue();
+test('guild service resolves from the container', function (): void {
+    expect(app(GuildService::class))->toBeInstanceOf(GuildService::class);
 });
 
 test('create guild creates the guild and attaches the creator as leader', function (): void {

@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Guild;
 use App\Models\User;
 use App\Policies\GuildPolicy;
 use App\Providers\AuthServiceProvider;
@@ -14,32 +13,16 @@ test('auth service provider is registered for guild policies', function (): void
     expect(require base_path('bootstrap/providers.php'))->toContain(AuthServiceProvider::class);
 });
 
-function createGuildPolicyGuild(User $creator): Guild
-{
-    return Guild::query()->create([
-        'name' => 'Policy Guild',
-        'created_by' => $creator->id,
-    ]);
-}
-
-function attachGuildPolicyMember(Guild $guild, User $user, string $role): void
-{
-    $guild->users()->attach($user->id, [
-        'role' => $role,
-        'joined_at' => now(),
-    ]);
-}
-
 test('guild leader can manage the guild except deleting when not creator', function (): void {
     $creator = User::factory()->create();
     $leader = User::factory()->create();
     $officer = User::factory()->create();
     $member = User::factory()->create();
-    $guild = createGuildPolicyGuild($creator);
+    $guild = createTestGuild($creator, ['name' => 'Policy Guild']);
 
-    attachGuildPolicyMember($guild, $leader, 'leader');
-    attachGuildPolicyMember($guild, $officer, 'officer');
-    attachGuildPolicyMember($guild, $member, 'member');
+    attachTestGuildMember($guild, $leader, 'leader');
+    attachTestGuildMember($guild, $officer, 'officer');
+    attachTestGuildMember($guild, $member, 'member');
 
     expect(Gate::forUser($leader)->allows('update', $guild))->toBeTrue()
         ->and(Gate::forUser($leader)->allows('invite', $guild))->toBeTrue()
@@ -56,9 +39,7 @@ test('guild leader can manage the guild except deleting when not creator', funct
 
 test('guild creator can delete only when they are the leader', function (): void {
     $creator = User::factory()->create();
-    $guild = createGuildPolicyGuild($creator);
-
-    attachGuildPolicyMember($guild, $creator, 'leader');
+    $guild = createTestGuild($creator, ['name' => 'Policy Guild']);
 
     expect(Gate::forUser($creator)->allows('delete', $guild))->toBeTrue();
 });
@@ -67,11 +48,11 @@ test('guild policy caches role lookups within the policy instance', function ():
     $creator = User::factory()->create();
     $leader = User::factory()->create();
     $member = User::factory()->create();
-    $guild = createGuildPolicyGuild($creator);
+    $guild = createTestGuild($creator, ['name' => 'Policy Guild']);
     $policy = new GuildPolicy();
 
-    attachGuildPolicyMember($guild, $leader, 'leader');
-    attachGuildPolicyMember($guild, $member, 'member');
+    attachTestGuildMember($guild, $leader, 'leader');
+    attachTestGuildMember($guild, $member, 'member');
 
     DB::enableQueryLog();
 
@@ -91,11 +72,11 @@ test('guild officers can invite kick members deposit and view events only', func
     $officer = User::factory()->create();
     $otherOfficer = User::factory()->create();
     $member = User::factory()->create();
-    $guild = createGuildPolicyGuild($creator);
+    $guild = createTestGuild($creator, ['name' => 'Policy Guild']);
 
-    attachGuildPolicyMember($guild, $officer, 'officer');
-    attachGuildPolicyMember($guild, $otherOfficer, 'officer');
-    attachGuildPolicyMember($guild, $member, 'member');
+    attachTestGuildMember($guild, $officer, 'officer');
+    attachTestGuildMember($guild, $otherOfficer, 'officer');
+    attachTestGuildMember($guild, $member, 'member');
 
     expect(Gate::forUser($officer)->allows('invite', $guild))->toBeTrue()
         ->and(Gate::forUser($officer)->allows('kick', [$guild, $member]))->toBeTrue()
@@ -114,10 +95,10 @@ test('guild members can only deposit', function (): void {
     $creator = User::factory()->create();
     $member = User::factory()->create();
     $otherMember = User::factory()->create();
-    $guild = createGuildPolicyGuild($creator);
+    $guild = createTestGuild($creator, ['name' => 'Policy Guild']);
 
-    attachGuildPolicyMember($guild, $member, 'member');
-    attachGuildPolicyMember($guild, $otherMember, 'member');
+    attachTestGuildMember($guild, $member, 'member');
+    attachTestGuildMember($guild, $otherMember, 'member');
 
     expect(Gate::forUser($member)->allows('deposit', $guild))->toBeTrue()
         ->and(Gate::forUser($member)->allows('invite', $guild))->toBeFalse()
@@ -133,9 +114,9 @@ test('non members cannot use guild permissions', function (): void {
     $creator = User::factory()->create();
     $outsider = User::factory()->create();
     $member = User::factory()->create();
-    $guild = createGuildPolicyGuild($creator);
+    $guild = createTestGuild($creator, ['name' => 'Policy Guild']);
 
-    attachGuildPolicyMember($guild, $member, 'member');
+    attachTestGuildMember($guild, $member, 'member');
 
     expect(Gate::forUser($outsider)->allows('update', $guild))->toBeFalse()
         ->and(Gate::forUser($outsider)->allows('invite', $guild))->toBeFalse()
