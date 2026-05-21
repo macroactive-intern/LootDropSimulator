@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\GuildController;
+use App\Http\Controllers\Api\GuildInviteController;
 use App\Http\Controllers\Api\GuildMemberController;
 use App\Http\Controllers\Api\GuildTreasuryController;
 use App\Http\Controllers\Api\LootController;
@@ -8,6 +9,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('throttle:60,1')->group(function (): void {
     Route::get('/loot-drops/global-stats', [LootController::class, 'globalStats']);
+    Route::post('/guild-invites/{token}/accept', [GuildInviteController::class, 'accept']);
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/loot-drop', [LootController::class, 'store']);
@@ -25,5 +27,6 @@ Route::middleware('throttle:60,1')->group(function (): void {
         Route::patch('/guilds/{guild}/members/{user}/role', [GuildMemberController::class, 'updateRole']);
         Route::post('/guilds/{guild}/treasury/deposit', [GuildTreasuryController::class, 'deposit']);
         Route::post('/guilds/{guild}/treasury/withdraw', [GuildTreasuryController::class, 'withdraw']);
+        Route::post('/guilds/{guild}/invites', [GuildInviteController::class, 'store']);
     });
 });

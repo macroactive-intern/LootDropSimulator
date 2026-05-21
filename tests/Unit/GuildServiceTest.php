@@ -24,7 +24,8 @@ test('guild service exposes the guild workflow methods', function (): void {
         ->and($reflection->hasMethod('depositTreasury'))->toBeTrue()
         ->and($reflection->hasMethod('withdrawTreasury'))->toBeTrue()
         ->and($reflection->hasMethod('createInvite'))->toBeTrue()
-        ->and($reflection->hasMethod('acceptInvite'))->toBeTrue();
+        ->and($reflection->hasMethod('acceptInvite'))->toBeTrue()
+        ->and($reflection->hasMethod('acceptInviteToken'))->toBeTrue();
 });
 
 test('create guild creates the guild and attaches the creator as leader', function (): void {

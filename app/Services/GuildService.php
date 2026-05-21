@@ -369,53 +369,89 @@ class GuildService
                 ->lockForUpdate()
                 ->first();
 
+            $this->acceptLockedInvite($lockedInvite, $user);
+        });
+    }
+
+    public function acceptInviteToken(string $token): Guild
+    {
+        return DB::transaction(function () use ($token): Guild {
+            $lockedInvite = GuildInvite::query()
+                ->where('token', $token)
+                ->lockForUpdate()
+                ->first();
+
             if ($lockedInvite === null) {
                 throw ValidationException::withMessages([
                     'token' => 'Guild invite does not exist.',
                 ]);
             }
 
-            if ($lockedInvite->expires_at->isPast()) {
-                throw ValidationException::withMessages([
-                    'token' => 'Guild invite has expired.',
-                ]);
-            }
-
-            if ($lockedInvite->accepted_at !== null) {
-                throw ValidationException::withMessages([
-                    'token' => 'Guild invite has already been accepted.',
-                ]);
-            }
-
-            $memberships = DB::table('guild_user')
-                ->where('user_id', $user->id)
+            $user = User::query()
+                ->where('email', $lockedInvite->email)
                 ->lockForUpdate()
-                ->get();
+                ->first();
 
-            if ($memberships->contains('guild_id', $lockedInvite->guild_id)) {
+            if ($user === null) {
                 throw ValidationException::withMessages([
-                    'guild' => 'User is already a member of this guild.',
+                    'email' => 'No user account exists for this invite email.',
                 ]);
             }
 
-            if ($memberships->count() >= 5) {
-                throw ValidationException::withMessages([
-                    'guild' => 'User cannot belong to more than 5 guilds.',
-                ]);
-            }
+            $this->acceptLockedInvite($lockedInvite, $user);
 
-            GuildMember::query()->create([
-                'guild_id' => $lockedInvite->guild_id,
-                'user_id' => $user->id,
-                'role' => 'member',
-                'joined_at' => now(),
-                'contributed_gold' => 0,
-            ]);
-
-            $lockedInvite->forceFill([
-                'accepted_at' => now(),
-            ])->save();
+            return $lockedInvite->guild()->firstOrFail();
         });
+    }
+
+    private function acceptLockedInvite(?GuildInvite $lockedInvite, User $user): void
+    {
+        if ($lockedInvite === null) {
+            throw ValidationException::withMessages([
+                'token' => 'Guild invite does not exist.',
+            ]);
+        }
+
+        if ($lockedInvite->expires_at->isPast()) {
+            throw ValidationException::withMessages([
+                'token' => 'Guild invite has expired.',
+            ]);
+        }
+
+        if ($lockedInvite->accepted_at !== null) {
+            throw ValidationException::withMessages([
+                'token' => 'Guild invite has already been accepted.',
+            ]);
+        }
+
+        $memberships = DB::table('guild_user')
+            ->where('user_id', $user->id)
+            ->lockForUpdate()
+            ->get();
+
+        if ($memberships->contains('guild_id', $lockedInvite->guild_id)) {
+            throw ValidationException::withMessages([
+                'guild' => 'User is already a member of this guild.',
+            ]);
+        }
+
+        if ($memberships->count() >= 5) {
+            throw ValidationException::withMessages([
+                'guild' => 'User cannot belong to more than 5 guilds.',
+            ]);
+        }
+
+        GuildMember::query()->create([
+            'guild_id' => $lockedInvite->guild_id,
+            'user_id' => $user->id,
+            'role' => 'member',
+            'joined_at' => now(),
+            'contributed_gold' => 0,
+        ]);
+
+        $lockedInvite->forceFill([
+            'accepted_at' => now(),
+        ])->save();
     }
 
     public function guildEvents(Guild $guild): LengthAwarePaginator
