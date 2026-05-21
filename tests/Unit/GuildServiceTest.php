@@ -125,6 +125,21 @@ test('join guild rejects users already in five guilds', function (): void {
     expect($sixthGuild->users()->whereKey($user->id)->exists())->toBeFalse();
 });
 
+test('join guild locks the user and membership rows before attaching', function (): void {
+    $source = file_get_contents(app_path('Services/GuildService.php'));
+    $joinMethodStart = strpos($source, 'public function joinGuild');
+    $lockPosition = strpos($source, '->lockForUpdate()', $joinMethodStart);
+    $membershipReadPosition = strpos($source, "DB::table('guild_user')", $joinMethodStart);
+    $attachPosition = strpos($source, '->users()->attach', $joinMethodStart);
+
+    expect($joinMethodStart)->not->toBeFalse()
+        ->and($lockPosition)->not->toBeFalse()
+        ->and($membershipReadPosition)->not->toBeFalse()
+        ->and($attachPosition)->not->toBeFalse()
+        ->and($lockPosition)->toBeLessThan($membershipReadPosition)
+        ->and($membershipReadPosition)->toBeLessThan($attachPosition);
+});
+
 test('leave guild removes a non leader membership', function (): void {
     $creator = User::factory()->create();
     $member = User::factory()->create();

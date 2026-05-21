@@ -11,6 +11,7 @@ use App\Support\GuildMemberAuditContext;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -88,28 +89,53 @@ class GuildService
     public function joinGuild(Guild $guild, User $user): void
     {
         DB::transaction(function () use ($guild, $user): void {
-            if (! $guild->is_open) {
+            $lockedUser = User::query()
+                ->whereKey($user->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $lockedGuild = Guild::query()
+                ->whereKey($guild->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! $lockedGuild->is_open) {
                 throw ValidationException::withMessages([
                     'guild' => 'Only open guilds can be joined directly.',
                 ]);
             }
 
-            if ($guild->users()->whereKey($user->id)->exists()) {
+            $memberships = DB::table('guild_user')
+                ->where('user_id', $lockedUser->id)
+                ->lockForUpdate()
+                ->get();
+
+            if ($memberships->contains('guild_id', $lockedGuild->id)) {
                 throw ValidationException::withMessages([
                     'guild' => 'User is already a member of this guild.',
                 ]);
             }
 
-            if ($user->guilds()->count() >= 5) {
+            if ($memberships->count() >= 5) {
                 throw ValidationException::withMessages([
                     'guild' => 'User cannot belong to more than 5 guilds.',
                 ]);
             }
 
-            $guild->users()->attach($user->id, [
-                'role' => 'member',
-                'joined_at' => now(),
-            ]);
+            try {
+                $lockedGuild->users()->attach($lockedUser->id, [
+                    'role' => 'member',
+                    'joined_at' => now(),
+                ]);
+            } catch (QueryException $exception) {
+                if ($this->isUniqueConstraintViolation($exception)) {
+                    throw ValidationException::withMessages([
+                        'guild' => 'User is already a member of this guild.',
+                    ]);
+                }
+
+                throw $exception;
+            }
         });
     }
 
@@ -516,7 +542,15 @@ class GuildService
                 ->whereColumn('guild_user.guild_id', 'guilds.id')
                 ->where('guild_user.user_id', $user->id)
                 ->limit(1),
-        ]);
+            ]);
+    }
+
+    private function isUniqueConstraintViolation(QueryException $exception): bool
+    {
+        $sqlState = $exception->errorInfo[0] ?? null;
+        $driverCode = (string) ($exception->errorInfo[1] ?? $exception->getCode());
+
+        return $sqlState === '23000' || $driverCode === '19';
     }
 
     private function deleteGuildMemberWithAuditIntent(
