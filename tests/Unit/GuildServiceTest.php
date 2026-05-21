@@ -395,3 +395,37 @@ test('kick member allows a leader to kick themselves when another leader remains
     expect($guild->users()->whereKey($leader->id)->exists())->toBeFalse()
         ->and($guild->users()->whereKey($secondLeader->id)->exists())->toBeTrue();
 });
+
+test('deposit treasury increments guild balance and member contribution atomically', function (): void {
+    $leader = User::factory()->create();
+    $member = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($leader, [
+        'name' => 'Deposit Guild',
+        'is_open' => true,
+    ]);
+    $service->joinGuild($guild, $member);
+
+    $service->depositTreasury($guild, $member, 150);
+    $service->depositTreasury($guild, $member, 50);
+
+    $contributor = $guild->users()->whereKey($member->id)->firstOrFail();
+
+    expect($guild->refresh()->treasury_balance)->toBe(200)
+        ->and($contributor->pivot->contributed_gold)->toBe(200);
+});
+
+test('deposit treasury rejects users outside the guild', function (): void {
+    $leader = User::factory()->create();
+    $outsider = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($leader, [
+        'name' => 'Outsider Deposit Guild',
+        'is_open' => true,
+    ]);
+
+    expect(fn () => $service->depositTreasury($guild, $outsider, 100))
+        ->toThrow(ValidationException::class, 'User is not a member of this guild.');
+
+    expect($guild->refresh()->treasury_balance)->toBe(0);
+});

@@ -212,7 +212,33 @@ class GuildService
 
     public function depositTreasury(Guild $guild, User $actor, int $amount): void
     {
-        //
+        DB::transaction(function () use ($guild, $actor, $amount): void {
+            Guild::query()
+                ->whereKey($guild->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $membership = DB::table('guild_user')
+                ->where('guild_id', $guild->id)
+                ->where('user_id', $actor->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($membership === null) {
+                throw ValidationException::withMessages([
+                    'guild' => 'User is not a member of this guild.',
+                ]);
+            }
+
+            Guild::query()
+                ->whereKey($guild->id)
+                ->increment('treasury_balance', $amount);
+
+            DB::table('guild_user')
+                ->where('guild_id', $guild->id)
+                ->where('user_id', $actor->id)
+                ->increment('contributed_gold', $amount);
+        });
     }
 
     public function withdrawTreasury(Guild $guild, User $actor, int $amount, string $reason): void
