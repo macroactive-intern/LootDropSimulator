@@ -6,6 +6,7 @@ use App\Models\Guild;
 use App\Models\GuildInvite;
 use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Support\Facades\DB;
 
 class GuildService
 {
@@ -19,7 +20,22 @@ class GuildService
      */
     public function createGuild(User $creator, array $data): Guild
     {
-        //
+        return DB::transaction(function () use ($creator, $data): Guild {
+            $guild = Guild::query()->create([
+                'name' => $data['name'],
+                'description' => $data['description'] ?? null,
+                'created_by' => $creator->id,
+                'treasury_balance' => $data['treasury_balance'] ?? 0,
+                'is_open' => $data['is_open'] ?? false,
+            ]);
+
+            $guild->users()->attach($creator->id, [
+                'role' => 'leader',
+                'joined_at' => now(),
+            ]);
+
+            return $guild;
+        });
     }
 
     public function joinGuild(Guild $guild, User $user): void
