@@ -615,6 +615,24 @@ test('create invite rejects duplicate pending invites for the same email', funct
         ->count())->toBe(1);
 });
 
+test('create invite locks guild and pending invites before creating invite', function (): void {
+    $source = file_get_contents(app_path('Services/GuildService.php'));
+    $methodStart = strpos($source, 'public function createInvite');
+    $guildLockPosition = strpos($source, '->lockForUpdate()', $methodStart);
+    $pendingInvitePosition = strpos($source, '$pendingInvite = GuildInvite::query()', $methodStart);
+    $pendingInviteLockPosition = strpos($source, '->lockForUpdate()', $pendingInvitePosition);
+    $createPosition = strpos($source, '$invite = GuildInvite::query()->create', $methodStart);
+
+    expect($methodStart)->not->toBeFalse()
+        ->and($guildLockPosition)->not->toBeFalse()
+        ->and($pendingInvitePosition)->not->toBeFalse()
+        ->and($pendingInviteLockPosition)->not->toBeFalse()
+        ->and($createPosition)->not->toBeFalse()
+        ->and($guildLockPosition)->toBeLessThan($pendingInvitePosition)
+        ->and($pendingInviteLockPosition)->toBeGreaterThan($pendingInvitePosition)
+        ->and($pendingInviteLockPosition)->toBeLessThan($createPosition);
+});
+
 test('create invite rejects existing guild members by email', function (): void {
     $leader = User::factory()->create();
     $member = User::factory()->create(['email' => 'member@example.com']);

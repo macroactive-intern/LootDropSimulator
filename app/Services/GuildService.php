@@ -381,12 +381,17 @@ class GuildService
                 ]);
             }
 
-            if (GuildInvite::query()
+            // The guild row acts as the per-guild mutex for invite creation. Locking
+            // matching invite rows as well protects the duplicate check when rows exist.
+            $pendingInvite = GuildInvite::query()
                 ->where('guild_id', $lockedGuild->id)
                 ->where('email', $email)
                 ->whereNull('accepted_at')
                 ->where('expires_at', '>', now())
-                ->exists()) {
+                ->lockForUpdate()
+                ->first();
+
+            if ($pendingInvite !== null) {
                 throw ValidationException::withMessages([
                     'email' => 'A pending invite already exists for this email.',
                 ]);
