@@ -9,6 +9,7 @@ use App\Models\GuildMember;
 use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -23,17 +24,18 @@ class GuildService
     /**
      * @param  array<string, mixed>  $data
      */
-    public function listGuilds(): LengthAwarePaginator
+    public function listGuilds(?User $user = null): LengthAwarePaginator
     {
-        return Guild::query()
-            ->withCount('users')
+        return $this->guildSummaryQuery($user)
             ->latest('id')
             ->paginate(15);
     }
 
-    public function getGuild(Guild $guild): Guild
+    public function getGuild(Guild $guild, ?User $user = null): Guild
     {
-        return $guild->loadCount('users');
+        return $this->guildSummaryQuery($user)
+            ->whereKey($guild->id)
+            ->firstOrFail();
     }
 
     public function createGuild(User $creator, array $data): Guild
@@ -457,8 +459,55 @@ class GuildService
     public function guildEvents(Guild $guild): LengthAwarePaginator
     {
         return $guild->events()
+            ->select([
+                'id',
+                'guild_id',
+                'actor_id',
+                'target_id',
+                'event_type',
+                'metadata',
+                'created_at',
+            ])
+            ->with([
+                'actor:id,name',
+                'target:id,name',
+            ])
             ->latest('id')
             ->paginate(15);
+    }
+
+    public function guildMember(Guild $guild, User $user): User
+    {
+        return $guild->users()
+            ->select(['users.id', 'users.name'])
+            ->whereKey($user->id)
+            ->firstOrFail();
+    }
+
+    private function guildSummaryQuery(?User $user): Builder
+    {
+        $query = Guild::query()
+            ->select([
+                'id',
+                'name',
+                'description',
+                'treasury_balance',
+                'is_open',
+                'created_by',
+            ])
+            ->withCount('users');
+
+        if ($user === null) {
+            return $query->selectRaw('NULL as current_user_role');
+        }
+
+        return $query->addSelect([
+            'current_user_role' => DB::table('guild_user')
+                ->select('role')
+                ->whereColumn('guild_user.guild_id', 'guilds.id')
+                ->where('guild_user.user_id', $user->id)
+                ->limit(1),
+        ]);
     }
 
     private function isValidRoleTransition(string $fromRole, string $toRole): bool

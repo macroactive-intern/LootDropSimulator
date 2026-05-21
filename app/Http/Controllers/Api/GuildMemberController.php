@@ -45,7 +45,7 @@ class GuildMemberController extends Controller
         $this->guildService->changeRole($guild, $request->user(), $user, $newRole);
 
         return new GuildMemberResource(
-            $guild->users()->whereKey($user->id)->firstOrFail(),
+            $this->guildService->guildMember($guild, $user),
         );
     }
 

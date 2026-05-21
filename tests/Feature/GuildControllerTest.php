@@ -4,6 +4,7 @@ use App\Models\Guild;
 use App\Models\GuildEvent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
@@ -60,6 +61,34 @@ test('authenticated users can list guilds', function (): void {
             'links',
             'meta',
         ]);
+});
+
+test('guild list avoids per guild role and member count queries', function (): void {
+    $user = User::factory()->create();
+
+    for ($index = 1; $index <= 5; $index++) {
+        $guild = createGuildControllerGuild(
+            User::factory()->create(),
+            ['name' => 'Optimized Guild '.$index],
+        );
+
+        if ($index === 3) {
+            attachGuildControllerMember($guild, $user);
+        }
+    }
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+
+    $this->actingAs($user)
+        ->getJson('/api/guilds')
+        ->assertOk()
+        ->assertJsonCount(5, 'data')
+        ->assertJsonPath('data.2.current_user_role', 'member');
+
+    expect(DB::getQueryLog())->toHaveCount(2);
+
+    DB::disableQueryLog();
 });
 
 test('authenticated users can create guilds', function (): void {

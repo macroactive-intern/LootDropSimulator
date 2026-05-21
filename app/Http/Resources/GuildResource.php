@@ -36,11 +36,15 @@ class GuildResource extends JsonResource
             return $this->users->count();
         }
 
-        return $this->users()->count();
+        return 0;
     }
 
     private function currentUserRole(?User $user): ?string
     {
+        if (array_key_exists('current_user_role', $this->resource->getAttributes())) {
+            return $this->current_user_role;
+        }
+
         if ($user === null) {
             return null;
         }
@@ -52,10 +56,6 @@ class GuildResource extends JsonResource
                 ?->role;
         }
 
-        return $this->users()
-            ->whereKey($user->id)
-            ->first()
-            ?->pivot
-            ?->role;
+        return null;
     }
 }

@@ -16,7 +16,7 @@ class GuildMemberResource extends JsonResource
     public function toArray(Request $request): array
     {
         $member = $this->resource instanceof GuildMember
-            ? $this->resource->user
+            ? ($this->resource->relationLoaded('user') ? $this->resource->user : null)
             : $this->resource;
         $pivot = $this->resource instanceof GuildMember
             ? $this->resource

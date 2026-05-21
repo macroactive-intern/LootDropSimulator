@@ -27,7 +27,7 @@ class GuildTreasuryController extends Controller
             $request->integer('amount'),
         );
 
-        return new GuildResource($this->guildService->getGuild($guild->refresh()));
+        return new GuildResource($this->guildService->getGuild($guild->refresh(), $request->user()));
     }
 
     public function withdraw(TreasuryWithdrawRequest $request, Guild $guild): GuildResource
@@ -43,6 +43,6 @@ class GuildTreasuryController extends Controller
             $data['reason'],
         );
 
-        return new GuildResource($this->guildService->getGuild($guild->refresh()));
+        return new GuildResource($this->guildService->getGuild($guild->refresh(), $request->user()));
     }
 }

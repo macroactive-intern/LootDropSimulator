@@ -22,11 +22,11 @@ class GuildController extends Controller
     ) {
     }
 
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
         Gate::authorize('viewAny', Guild::class);
 
-        return GuildResource::collection($this->guildService->listGuilds());
+        return GuildResource::collection($this->guildService->listGuilds($request->user()));
     }
 
     public function store(StoreGuildRequest $request): JsonResponse
@@ -38,26 +38,28 @@ class GuildController extends Controller
             $request->validated(),
         );
 
-        return (new GuildResource($this->guildService->getGuild($guild)))
+        return (new GuildResource($this->guildService->getGuild($guild, $request->user())))
             ->response()
             ->setStatusCode(201);
     }
 
-    public function show(Guild $guild): GuildResource
+    public function show(Request $request, Guild $guild): GuildResource
     {
         Gate::authorize('view', $guild);
 
-        return new GuildResource($this->guildService->getGuild($guild));
+        return new GuildResource($this->guildService->getGuild($guild, $request->user()));
     }
 
     public function update(UpdateGuildRequest $request, Guild $guild): GuildResource
     {
         Gate::authorize('update', $guild);
 
-        return new GuildResource($this->guildService->updateGuild(
+        $updatedGuild = $this->guildService->updateGuild(
             $guild,
             $request->validated(),
-        ));
+        );
+
+        return new GuildResource($this->guildService->getGuild($updatedGuild, $request->user()));
     }
 
     public function destroy(Guild $guild): Response
@@ -75,7 +77,7 @@ class GuildController extends Controller
 
         $this->guildService->joinGuild($guild, $request->user());
 
-        return new GuildResource($this->guildService->getGuild($guild->refresh()));
+        return new GuildResource($this->guildService->getGuild($guild->refresh(), $request->user()));
     }
 
     public function leave(Request $request, Guild $guild): Response
