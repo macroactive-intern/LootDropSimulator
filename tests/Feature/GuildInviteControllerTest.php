@@ -93,7 +93,7 @@ test('invite token can be accepted without authentication', function (): void {
         'expires_at' => now()->addHours(48),
     ]);
 
-    $this->postJson('/api/guild-invites/'.$invite->token.'/accept')
+    $this->postJson('/api/guilds/invites/'.$invite->token.'/accept')
         ->assertOk()
         ->assertJsonPath('data.id', $guild->id)
         ->assertJsonPath('data.member_count', 2)
@@ -105,7 +105,7 @@ test('invite token can be accepted without authentication', function (): void {
 });
 
 test('public invite acceptance rejects bad tokens', function (): void {
-    $this->postJson('/api/guild-invites/not-a-real-token/accept')
+    $this->postJson('/api/guilds/invites/not-a-real-token/accept')
         ->assertUnprocessable()
         ->assertJsonValidationErrors('token');
 });
@@ -122,7 +122,7 @@ test('public invite acceptance requires an existing user for the invited email',
         'expires_at' => now()->addHours(48),
     ]);
 
-    $this->postJson('/api/guild-invites/'.$invite->token.'/accept')
+    $this->postJson('/api/guilds/invites/'.$invite->token.'/accept')
         ->assertUnprocessable()
         ->assertJsonValidationErrors('email');
 });

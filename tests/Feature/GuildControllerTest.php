@@ -99,7 +99,7 @@ test('leaders can update guilds', function (): void {
     $guild = createGuildControllerGuild($leader);
 
     $this->actingAs($leader)
-        ->patchJson('/api/guilds/'.$guild->id, [
+        ->putJson('/api/guilds/'.$guild->id, [
             'name' => 'Updated Guild',
             'description' => null,
             'is_open' => false,
@@ -117,7 +117,7 @@ test('non leaders cannot update guilds', function (): void {
     attachGuildControllerMember($guild, $member);
 
     $this->actingAs($member)
-        ->patchJson('/api/guilds/'.$guild->id, [
+        ->putJson('/api/guilds/'.$guild->id, [
             'name' => 'Unauthorized Rename',
         ])
         ->assertForbidden();

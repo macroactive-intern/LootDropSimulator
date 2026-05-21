@@ -82,7 +82,7 @@ test('leaders can change member roles', function (): void {
     attachGuildMemberControllerMember($guild, $member);
 
     $this->actingAs($leader)
-        ->patchJson('/api/guilds/'.$guild->id.'/members/'.$member->id.'/role', [
+        ->putJson('/api/guilds/'.$guild->id.'/members/'.$member->id, [
             'role' => 'officer',
         ])
         ->assertOk()
@@ -103,7 +103,7 @@ test('members cannot change roles', function (): void {
     attachGuildMemberControllerMember($guild, $target);
 
     $this->actingAs($member)
-        ->patchJson('/api/guilds/'.$guild->id.'/members/'.$target->id.'/role', [
+        ->putJson('/api/guilds/'.$guild->id.'/members/'.$target->id, [
             'role' => 'officer',
         ])
         ->assertForbidden();
@@ -119,7 +119,7 @@ test('role changes validate allowed guild roles', function (): void {
     attachGuildMemberControllerMember($guild, $member);
 
     $this->actingAs($leader)
-        ->patchJson('/api/guilds/'.$guild->id.'/members/'.$member->id.'/role', [
+        ->putJson('/api/guilds/'.$guild->id.'/members/'.$member->id, [
             'role' => 'raid-boss',
         ])
         ->assertUnprocessable()
