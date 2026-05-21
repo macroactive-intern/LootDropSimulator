@@ -100,10 +100,83 @@ class TradeService
             $lockedTrade->escrowItems()->delete();
             $lockedTrade->forceFill(['status' => Trade::STATUS_COMPLETED])->save();
 
-            return $lockedTrade->load([
-                'tradeItems.inventoryItem.item',
-                'escrowItems.inventoryItem.item',
-            ]);
+            return $this->loadTradeRelations($lockedTrade);
+        });
+    }
+
+    public function reject(Trade $trade, User $user): Trade
+    {
+        return DB::transaction(function () use ($trade, $user): Trade {
+            $lockedTrade = Trade::query()
+                ->whereKey($trade->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ((int) $lockedTrade->recipient_id !== (int) $user->id) {
+                throw ValidationException::withMessages([
+                    'trade' => 'Only the recipient can reject this trade.',
+                ]);
+            }
+
+            if (! $lockedTrade->isPending()) {
+                throw ValidationException::withMessages([
+                    'trade' => 'Trade is no longer pending.',
+                ]);
+            }
+
+            $this->escrowService->releaseEscrow($lockedTrade);
+
+            $lockedTrade->forceFill(['status' => Trade::STATUS_REJECTED])->save();
+
+            return $this->loadTradeRelations($lockedTrade);
+        });
+    }
+
+    public function cancel(Trade $trade, User $user): Trade
+    {
+        return DB::transaction(function () use ($trade, $user): Trade {
+            $lockedTrade = Trade::query()
+                ->whereKey($trade->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ((int) $lockedTrade->initiator_id !== (int) $user->id) {
+                throw ValidationException::withMessages([
+                    'trade' => 'Only the initiator can cancel this trade.',
+                ]);
+            }
+
+            if (! $lockedTrade->isPending()) {
+                throw ValidationException::withMessages([
+                    'trade' => 'Trade is no longer pending.',
+                ]);
+            }
+
+            $this->escrowService->releaseEscrow($lockedTrade);
+
+            $lockedTrade->forceFill(['status' => Trade::STATUS_CANCELLED])->save();
+
+            return $this->loadTradeRelations($lockedTrade);
+        });
+    }
+
+    public function expireIfPending(Trade $trade): ?Trade
+    {
+        return DB::transaction(function () use ($trade): Trade {
+            $lockedTrade = Trade::query()
+                ->whereKey($trade->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! $lockedTrade->isPending()) {
+                return $this->loadTradeRelations($lockedTrade);
+            }
+
+            $this->escrowService->releaseEscrow($lockedTrade);
+
+            $lockedTrade->forceFill(['status' => Trade::STATUS_EXPIRED])->save();
+
+            return $this->loadTradeRelations($lockedTrade);
         });
     }
 
@@ -120,6 +193,14 @@ class TradeService
                 'quantity' => $item['quantity'],
             ]);
         }
+    }
+
+    private function loadTradeRelations(Trade $trade): Trade
+    {
+        return $trade->load([
+            'tradeItems.inventoryItem.item',
+            'escrowItems.inventoryItem.item',
+        ]);
     }
 
     /**
