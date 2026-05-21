@@ -194,15 +194,15 @@ class GuildService
                 ]);
             }
 
-            if ($actorMembership->role === 'officer' && $targetMembership->role !== 'member') {
-                throw ValidationException::withMessages([
-                    'guild' => 'Officers can only kick members.',
-                ]);
-            }
-
             if (! in_array($actorMembership->role, ['leader', 'officer'], true)) {
                 throw ValidationException::withMessages([
                     'guild' => 'Only guild leaders and officers can kick members.',
+                ]);
+            }
+
+            if ($actorMembership->role === 'officer' && $targetMembership->role !== 'member') {
+                throw ValidationException::withMessages([
+                    'guild' => 'Officers can only kick members.',
                 ]);
             }
 
