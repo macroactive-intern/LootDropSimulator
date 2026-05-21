@@ -5,6 +5,7 @@ use App\Models\User;
 use App\Services\GuildService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Validation\ValidationException;
 
 uses(RefreshDatabase::class);
 
@@ -47,4 +48,77 @@ test('create guild creates the guild and attaches the creator as leader', functi
     expect($member->pivot->role)->toBe('leader')
         ->and($member->pivot->joined_at)->not->toBeNull()
         ->and($member->pivot->contributed_gold)->toBe(0);
+});
+
+test('join guild attaches a user as member when guild is open', function (): void {
+    $creator = User::factory()->create();
+    $user = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($creator, [
+        'name' => 'Open Guild',
+        'is_open' => true,
+    ]);
+
+    $service->joinGuild($guild, $user);
+
+    $member = $guild->users()->whereKey($user->id)->firstOrFail();
+
+    expect($member->pivot->role)->toBe('member')
+        ->and($member->pivot->joined_at)->not->toBeNull()
+        ->and($member->pivot->contributed_gold)->toBe(0);
+});
+
+test('join guild rejects closed guilds', function (): void {
+    $creator = User::factory()->create();
+    $user = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($creator, [
+        'name' => 'Closed Guild',
+        'is_open' => false,
+    ]);
+
+    expect(fn () => $service->joinGuild($guild, $user))
+        ->toThrow(ValidationException::class, 'Only open guilds can be joined directly.');
+
+    expect($guild->users()->whereKey($user->id)->exists())->toBeFalse();
+});
+
+test('join guild rejects existing members', function (): void {
+    $creator = User::factory()->create();
+    $user = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($creator, [
+        'name' => 'Duplicate Guild',
+        'is_open' => true,
+    ]);
+
+    $service->joinGuild($guild, $user);
+
+    expect(fn () => $service->joinGuild($guild, $user))
+        ->toThrow(ValidationException::class, 'User is already a member of this guild.');
+});
+
+test('join guild rejects users already in five guilds', function (): void {
+    $creator = User::factory()->create();
+    $user = User::factory()->create();
+    $service = app(GuildService::class);
+
+    for ($guildNumber = 1; $guildNumber <= 5; $guildNumber++) {
+        $guild = $service->createGuild($creator, [
+            'name' => 'Existing Guild '.$guildNumber,
+            'is_open' => true,
+        ]);
+
+        $service->joinGuild($guild, $user);
+    }
+
+    $sixthGuild = $service->createGuild($creator, [
+        'name' => 'Sixth Guild',
+        'is_open' => true,
+    ]);
+
+    expect(fn () => $service->joinGuild($sixthGuild, $user))
+        ->toThrow(ValidationException::class, 'User cannot belong to more than 5 guilds.');
+
+    expect($sixthGuild->users()->whereKey($user->id)->exists())->toBeFalse();
 });
