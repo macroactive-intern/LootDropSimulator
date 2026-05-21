@@ -347,25 +347,27 @@ class GuildService
                 ]);
             }
 
-            return GuildInvite::query()->create([
+            $invite = GuildInvite::query()->create([
                 'guild_id' => $guild->id,
                 'invited_by' => $inviter->id,
                 'email' => $email,
                 'token' => (string) Str::uuid(),
                 'expires_at' => now()->addHours(48),
             ]);
-        });
-    }
 
-    public function acceptInvite(GuildInvite $invite, User $user): void
-    {
-        DB::transaction(function () use ($invite, $user): void {
-            $lockedInvite = GuildInvite::query()
-                ->whereKey($invite->id)
-                ->lockForUpdate()
-                ->first();
+            GuildEvent::query()->create([
+                'guild_id' => $guild->id,
+                'actor_id' => $inviter->id,
+                'target_id' => $invitedUser?->id,
+                'event_type' => 'invite_sent',
+                'metadata' => [
+                    'invite_id' => $invite->id,
+                    'email' => $invite->email,
+                    'expires_at' => $invite->expires_at->toISOString(),
+                ],
+            ]);
 
-            $this->acceptLockedInvite($lockedInvite, $user);
+            return $invite;
         });
     }
 
@@ -448,6 +450,19 @@ class GuildService
         $lockedInvite->forceFill([
             'accepted_at' => now(),
         ])->save();
+
+        GuildEvent::query()->create([
+            'guild_id' => $lockedInvite->guild_id,
+            'actor_id' => $user->id,
+            'target_id' => $user->id,
+            'event_type' => 'invite_accepted',
+            'metadata' => [
+                'invite_id' => $lockedInvite->id,
+                'email' => $lockedInvite->email,
+                'invited_by' => $lockedInvite->invited_by,
+                'accepted_at' => $lockedInvite->accepted_at->toISOString(),
+            ],
+        ]);
     }
 
     public function guildEvents(Guild $guild): LengthAwarePaginator

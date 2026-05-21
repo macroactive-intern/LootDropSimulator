@@ -24,7 +24,6 @@ test('guild service exposes the guild workflow methods', function (): void {
         ->and($reflection->hasMethod('depositTreasury'))->toBeTrue()
         ->and($reflection->hasMethod('withdrawTreasury'))->toBeTrue()
         ->and($reflection->hasMethod('createInvite'))->toBeTrue()
-        ->and($reflection->hasMethod('acceptInvite'))->toBeTrue()
         ->and($reflection->hasMethod('acceptInviteToken'))->toBeTrue();
 });
 
@@ -570,7 +569,13 @@ test('create invite stores inviter token and forty eight hour expiry', function 
         ->and($invite->token)->toBeString()
         ->and($invite->token)->not->toBe('')
         ->and($invite->accepted_at)->toBeNull()
-        ->and($invite->expires_at->equalTo($now->copy()->addHours(48)))->toBeTrue();
+        ->and($invite->expires_at->equalTo($now->copy()->addHours(48)))->toBeTrue()
+        ->and(GuildEvent::query()
+            ->where('guild_id', $guild->id)
+            ->where('actor_id', $leader->id)
+            ->where('event_type', 'invite_sent')
+            ->whereJsonContains('metadata->email', 'new-member@example.com')
+            ->exists())->toBeTrue();
 });
 
 test('create invite rejects existing guild members by email', function (): void {
@@ -605,12 +610,17 @@ test('accept invite adds the user as a member and marks the invite accepted', fu
 
     $this->travelTo($now);
 
-    $service->acceptInvite($invite, $user);
+    $service->acceptInviteToken($invite->token);
 
     $member = $guild->users()->whereKey($user->id)->firstOrFail();
-    $event = GuildEvent::query()
+    $joinEvent = GuildEvent::query()
         ->where('guild_id', $guild->id)
         ->where('event_type', 'join')
+        ->where('target_id', $user->id)
+        ->firstOrFail();
+    $acceptedEvent = GuildEvent::query()
+        ->where('guild_id', $guild->id)
+        ->where('event_type', 'invite_accepted')
         ->where('target_id', $user->id)
         ->firstOrFail();
 
@@ -618,17 +628,23 @@ test('accept invite adds the user as a member and marks the invite accepted', fu
         ->and($member->pivot->joined_at)->not->toBeNull()
         ->and($member->pivot->contributed_gold)->toBe(0)
         ->and($invite->refresh()->accepted_at->equalTo($now))->toBeTrue()
-        ->and($event->actor_id)->toBeNull()
-        ->and($event->target_id)->toBe($user->id)
-        ->and($event->metadata)->toBe([
+        ->and($joinEvent->actor_id)->toBeNull()
+        ->and($joinEvent->target_id)->toBe($user->id)
+        ->and($joinEvent->metadata)->toBe([
             'role' => 'member',
             'joined_at' => $now->toISOString(),
+        ])
+        ->and($acceptedEvent->actor_id)->toBe($user->id)
+        ->and($acceptedEvent->metadata)->toBe([
+            'invite_id' => $invite->id,
+            'email' => 'accepted@example.com',
+            'invited_by' => $leader->id,
+            'accepted_at' => $now->toISOString(),
         ]);
 });
 
 test('accept invite rejects missing invite tokens', function (): void {
     $leader = User::factory()->create();
-    $user = User::factory()->create(['email' => 'missing-token@example.com']);
     $service = app(GuildService::class);
     $guild = $service->createGuild($leader, [
         'name' => 'Missing Invite Guild',
@@ -639,7 +655,7 @@ test('accept invite rejects missing invite tokens', function (): void {
     ]);
     $invite->delete();
 
-    expect(fn () => $service->acceptInvite($invite, $user))
+    expect(fn () => $service->acceptInviteToken($invite->token))
         ->toThrow(ValidationException::class, 'Guild invite does not exist.');
 });
 
@@ -656,7 +672,7 @@ test('accept invite rejects expired invites', function (): void {
     ]);
     $invite->forceFill(['expires_at' => now()->subMinute()])->save();
 
-    expect(fn () => $service->acceptInvite($invite, $user))
+    expect(fn () => $service->acceptInviteToken($invite->token))
         ->toThrow(ValidationException::class, 'Guild invite has expired.');
 
     expect($guild->users()->whereKey($user->id)->exists())->toBeFalse()
@@ -674,9 +690,9 @@ test('accept invite rejects already accepted invites', function (): void {
     $invite = $service->createInvite($guild, $leader, [
         'email' => 'already-accepted@example.com',
     ]);
-    $service->acceptInvite($invite, $user);
+    $service->acceptInviteToken($invite->token);
 
-    expect(fn () => $service->acceptInvite($invite->refresh(), User::factory()->create()))
+    expect(fn () => $service->acceptInviteToken($invite->refresh()->token))
         ->toThrow(ValidationException::class, 'Guild invite has already been accepted.');
 });
 
@@ -697,7 +713,7 @@ test('accept invite rejects users already in the guild', function (): void {
         'expires_at' => now()->addHours(48),
     ]);
 
-    expect(fn () => $service->acceptInvite($invite, $member))
+    expect(fn () => $service->acceptInviteToken($invite->token))
         ->toThrow(ValidationException::class, 'User is already a member of this guild.');
 
     expect($invite->refresh()->accepted_at)->toBeNull();
@@ -725,7 +741,7 @@ test('accept invite rejects users already in five guilds', function (): void {
         'email' => 'five-guilds@example.com',
     ]);
 
-    expect(fn () => $service->acceptInvite($invite, $user))
+    expect(fn () => $service->acceptInviteToken($invite->token))
         ->toThrow(ValidationException::class, 'User cannot belong to more than 5 guilds.');
 
     expect($inviteGuild->users()->whereKey($user->id)->exists())->toBeFalse()
