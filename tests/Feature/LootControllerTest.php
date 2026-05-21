@@ -220,11 +220,10 @@ test('admin loot grant rolls back if loot dropped event handling fails', functio
             'item_name' => 'Legendary Ring',
         ]))->toThrow(\RuntimeException::class, 'Stats listener failed.');
 
-    $this->assertDatabaseMissing('dropped_items', [
-        'user_id' => $user->id,
-        'item_name' => 'Legendary Ring',
-        'source' => 'admin_grant',
-    ]);
+    expect($user->droppedItems()
+        ->where('item_name', 'Legendary Ring')
+        ->where('source', 'admin_grant')
+        ->exists())->toBeFalse();
 });
 
 test('non admin cannot manually grant loot', function (): void {

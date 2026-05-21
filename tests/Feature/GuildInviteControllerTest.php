@@ -80,6 +80,29 @@ test('invite creation validates email payload', function (): void {
         ->assertJsonValidationErrors('email');
 });
 
+test('invite creation rejects duplicate pending invites for the same email', function (): void {
+    $leader = User::factory()->create();
+    $guild = createGuildInviteControllerGuild($leader);
+
+    $this->actingAs($leader)
+        ->postJson('/api/guilds/'.$guild->id.'/invites', [
+            'email' => 'pending@example.com',
+        ])
+        ->assertCreated();
+
+    $this->actingAs($leader)
+        ->postJson('/api/guilds/'.$guild->id.'/invites', [
+            'email' => 'pending@example.com',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('email');
+
+    expect(GuildInvite::query()
+        ->where('guild_id', $guild->id)
+        ->where('email', 'pending@example.com')
+        ->count())->toBe(1);
+});
+
 test('invite token can be accepted without authentication', function (): void {
     $leader = User::factory()->create();
     $invitedUser = User::factory()->create(['email' => 'invited@example.com']);

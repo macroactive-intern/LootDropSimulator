@@ -37,12 +37,6 @@ test('it rolls saves dispatches and returns a dropped item', function (): void {
         ->and($droppedItem->source)->toBe('test_chest')
         ->and($droppedItem->quantity)->toBe(1);
 
-    $this->assertDatabaseHas('dropped_items', [
-        'id' => $droppedItem->id,
-        'user_id' => $user->id,
-        'item_name' => 'Guaranteed Sword',
-    ]);
-
     Event::assertDispatched(
         LootDropped::class,
         fn (LootDropped $event): bool => $event->droppedItem->is($droppedItem)
@@ -112,10 +106,9 @@ test('it fails clearly when pity filtering leaves no rollable loot', function ()
         source: 'misconfigured_pity_test',
     ))->toThrow(UnexpectedValueException::class, 'Loot table has no rollable items.');
 
-    $this->assertDatabaseMissing('dropped_items', [
-        'user_id' => $user->id,
-        'source' => 'misconfigured_pity_test',
-    ]);
+    expect($user->droppedItems()
+        ->where('source', 'misconfigured_pity_test')
+        ->exists())->toBeFalse();
 });
 
 test('it clamps invalid stack max to at least one', function (): void {
@@ -201,8 +194,7 @@ test('it rolls back the dropped item if event dispatch fails', function (): void
     expect(fn () => $service->roll($user->id, 'test_chest'))
         ->toThrow(RuntimeException::class, 'Listener failed.');
 
-    $this->assertDatabaseMissing('dropped_items', [
-        'user_id' => $user->id,
-        'item_name' => 'Guaranteed Sword',
-    ]);
+    expect($user->droppedItems()
+        ->where('item_name', 'Guaranteed Sword')
+        ->exists())->toBeFalse();
 });

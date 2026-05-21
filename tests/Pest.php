@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\Guild;
+use App\Models\User;
+
 /*
 |--------------------------------------------------------------------------
 | Test Case
@@ -39,4 +42,26 @@ pest()->extend(Tests\TestCase::class)
 |
 */
 
-// Add project-specific test helper functions here as needed.
+function createTestGuild(User $creator, array $attributes = []): Guild
+{
+    $guild = Guild::query()->create(array_merge([
+        'name' => 'Test Guild '.str()->uuid(),
+        'created_by' => $creator->id,
+        'is_open' => true,
+    ], $attributes));
+
+    $guild->users()->attach($creator->id, [
+        'role' => 'leader',
+        'joined_at' => now(),
+    ]);
+
+    return $guild;
+}
+
+function attachTestGuildMember(Guild $guild, User $user, string $role = 'member'): void
+{
+    $guild->users()->attach($user->id, [
+        'role' => $role,
+        'joined_at' => now(),
+    ]);
+}

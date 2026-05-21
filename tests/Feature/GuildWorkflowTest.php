@@ -7,30 +7,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-function createGuildWorkflowGuild(User $creator, array $attributes = []): Guild
-{
-    $guild = Guild::query()->create(array_merge([
-        'name' => 'Workflow Guild '.str()->uuid(),
-        'created_by' => $creator->id,
-        'is_open' => true,
-    ], $attributes));
-
-    $guild->users()->attach($creator->id, [
-        'role' => 'leader',
-        'joined_at' => now(),
-    ]);
-
-    return $guild;
-}
-
-function attachGuildWorkflowMember(Guild $guild, User $user, string $role = 'member'): void
-{
-    $guild->users()->attach($user->id, [
-        'role' => $role,
-        'joined_at' => now(),
-    ]);
-}
-
 test('users can create guilds and become leaders', function (): void {
     $user = User::factory()->create();
 
@@ -53,7 +29,7 @@ test('users can create guilds and become leaders', function (): void {
 test('users can join open guilds', function (): void {
     $leader = User::factory()->create();
     $user = User::factory()->create();
-    $guild = createGuildWorkflowGuild($leader, ['is_open' => true]);
+    $guild = createTestGuild($leader, ['is_open' => true]);
 
     $this->actingAs($user)
         ->postJson('/api/guilds/'.$guild->id.'/join')
@@ -67,8 +43,8 @@ test('users can join open guilds', function (): void {
 test('users can leave guilds', function (): void {
     $leader = User::factory()->create();
     $member = User::factory()->create();
-    $guild = createGuildWorkflowGuild($leader);
-    attachGuildWorkflowMember($guild, $member);
+    $guild = createTestGuild($leader);
+    attachTestGuildMember($guild, $member);
 
     $this->actingAs($member)
         ->postJson('/api/guilds/'.$guild->id.'/leave')
@@ -82,15 +58,15 @@ test('users cannot join more than five guilds', function (): void {
 
     for ($guildNumber = 1; $guildNumber <= 5; $guildNumber++) {
         $leader = User::factory()->create();
-        $guild = createGuildWorkflowGuild($leader, [
+        $guild = createTestGuild($leader, [
             'name' => 'Membership Limit Guild '.$guildNumber,
         ]);
 
-        attachGuildWorkflowMember($guild, $user);
+        attachTestGuildMember($guild, $user);
     }
 
     $sixthLeader = User::factory()->create();
-    $sixthGuild = createGuildWorkflowGuild($sixthLeader, [
+    $sixthGuild = createTestGuild($sixthLeader, [
         'name' => 'Sixth Membership Limit Guild',
     ]);
 
@@ -102,10 +78,25 @@ test('users cannot join more than five guilds', function (): void {
     expect($sixthGuild->users()->whereKey($user->id)->exists())->toBeFalse();
 });
 
+test('join workflow locks membership checks before attaching users', function (): void {
+    $source = file_get_contents(app_path('Services/GuildService.php'));
+    $joinMethodStart = strpos($source, 'public function joinGuild');
+    $userLockPosition = strpos($source, 'User::query()', $joinMethodStart);
+    $membershipLockPosition = strpos($source, "DB::table('guild_user')", $joinMethodStart);
+    $attachPosition = strpos($source, '->users()->attach', $joinMethodStart);
+
+    expect($joinMethodStart)->not->toBeFalse()
+        ->and($userLockPosition)->not->toBeFalse()
+        ->and($membershipLockPosition)->not->toBeFalse()
+        ->and($attachPosition)->not->toBeFalse()
+        ->and($userLockPosition)->toBeLessThan($membershipLockPosition)
+        ->and($membershipLockPosition)->toBeLessThan($attachPosition);
+});
+
 test('users can accept guild invites without authentication', function (): void {
     $leader = User::factory()->create();
     $invitedUser = User::factory()->create(['email' => 'workflow-invite@example.com']);
-    $guild = createGuildWorkflowGuild($leader, ['is_open' => false]);
+    $guild = createTestGuild($leader, ['is_open' => false]);
     $invite = GuildInvite::query()->create([
         'guild_id' => $guild->id,
         'invited_by' => $leader->id,
@@ -127,8 +118,8 @@ test('users can accept guild invites without authentication', function (): void 
 test('leaders can change member roles', function (): void {
     $leader = User::factory()->create();
     $member = User::factory()->create();
-    $guild = createGuildWorkflowGuild($leader);
-    attachGuildWorkflowMember($guild, $member);
+    $guild = createTestGuild($leader);
+    attachTestGuildMember($guild, $member);
 
     $this->actingAs($leader)
         ->putJson('/api/guilds/'.$guild->id.'/members/'.$member->id, [
@@ -144,8 +135,8 @@ test('leaders can change member roles', function (): void {
 test('authorized guild members can kick members', function (): void {
     $leader = User::factory()->create();
     $member = User::factory()->create();
-    $guild = createGuildWorkflowGuild($leader);
-    attachGuildWorkflowMember($guild, $member);
+    $guild = createTestGuild($leader);
+    attachTestGuildMember($guild, $member);
 
     $this->actingAs($leader)
         ->deleteJson('/api/guilds/'.$guild->id.'/members/'.$member->id)
