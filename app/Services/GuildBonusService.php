@@ -8,12 +8,14 @@ class GuildBonusService
 {
     public function getMultiplierForUser(int $userId): float
     {
-        $isGuildLeader = DB::table('guild_user')
+        // L7 guild leader bonuses are intentionally global for loot rolls:
+        // a user who leads any guild receives the configured legendary multiplier.
+        $isLeaderInAnyGuild = DB::table('guild_user')
             ->where('user_id', $userId)
             ->where('role', 'leader')
             ->exists();
 
-        if (! $isGuildLeader) {
+        if (! $isLeaderInAnyGuild) {
             return 1.0;
         }
 

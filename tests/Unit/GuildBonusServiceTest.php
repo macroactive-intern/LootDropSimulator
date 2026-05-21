@@ -18,7 +18,7 @@ function createGuildBonusServiceGuild(User $creator): Guild
     ]);
 }
 
-test('guild leaders receive the configured legendary multiplier', function (): void {
+test('leaders in any guild receive the configured legendary multiplier globally', function (): void {
     config()->set('loot.guild_leader_legendary_multiplier', 2.0);
 
     $leader = User::factory()->create();
@@ -55,6 +55,19 @@ test('guild leader multiplier lookup uses a single existence query', function ()
     expect(DB::getQueryLog())->toHaveCount(1);
 
     DB::disableQueryLog();
+});
+
+test('guild leader multiplier is intentionally not scoped to loot source', function (): void {
+    config()->set('loot.guild_leader_legendary_multiplier', 2.0);
+
+    $leader = User::factory()->create();
+    $guild = createGuildBonusServiceGuild($leader);
+    $guild->users()->attach($leader->id, [
+        'role' => 'leader',
+        'joined_at' => now(),
+    ]);
+
+    expect(app(GuildBonusService::class)->getMultiplierForUser($leader->id))->toBe(2.0);
 });
 
 test('guild leader multiplier increases legendary drop rate', function (): void {
