@@ -184,3 +184,106 @@ test('leave guild allows a leader to leave when another leader remains', functio
     expect($guild->users()->whereKey($creator->id)->exists())->toBeFalse()
         ->and($guild->users()->whereKey($secondLeader->id)->exists())->toBeTrue();
 });
+
+test('change role allows leaders to promote and demote valid transitions', function (): void {
+    $leader = User::factory()->create();
+    $member = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($leader, [
+        'name' => 'Role Guild',
+        'is_open' => true,
+    ]);
+    $service->joinGuild($guild, $member);
+
+    $service->changeRole($guild, $leader, $member, 'officer');
+
+    expect($guild->users()->whereKey($member->id)->firstOrFail()->pivot->role)
+        ->toBe('officer');
+
+    $service->changeRole($guild, $leader, $member, 'member');
+
+    expect($guild->users()->whereKey($member->id)->firstOrFail()->pivot->role)
+        ->toBe('member');
+});
+
+test('change role rejects officers modifying roles', function (): void {
+    $leader = User::factory()->create();
+    $officer = User::factory()->create();
+    $member = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($leader, [
+        'name' => 'Officer Cannot Promote Guild',
+        'is_open' => true,
+    ]);
+    $service->joinGuild($guild, $officer);
+    $service->joinGuild($guild, $member);
+    $service->changeRole($guild, $leader, $officer, 'officer');
+
+    expect(fn () => $service->changeRole($guild, $officer, $member, 'officer'))
+        ->toThrow(ValidationException::class, 'Only guild leaders can change member roles.');
+});
+
+test('change role prevents invalid transitions', function (): void {
+    $leader = User::factory()->create();
+    $member = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($leader, [
+        'name' => 'Invalid Transition Guild',
+        'is_open' => true,
+    ]);
+    $service->joinGuild($guild, $member);
+
+    expect(fn () => $service->changeRole($guild, $leader, $member, 'leader'))
+        ->toThrow(ValidationException::class, 'Invalid guild role transition.');
+
+    expect($guild->users()->whereKey($member->id)->firstOrFail()->pivot->role)
+        ->toBe('member');
+});
+
+test('change role prevents no op transitions', function (): void {
+    $leader = User::factory()->create();
+    $member = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($leader, [
+        'name' => 'No Op Guild',
+        'is_open' => true,
+    ]);
+    $service->joinGuild($guild, $member);
+
+    expect(fn () => $service->changeRole($guild, $leader, $member, 'member'))
+        ->toThrow(ValidationException::class, 'Target user already has this role.');
+});
+
+test('change role prevents demoting the last leader', function (): void {
+    $leader = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($leader, [
+        'name' => 'Last Leader Demotion Guild',
+        'is_open' => true,
+    ]);
+
+    expect(fn () => $service->changeRole($guild, $leader, $leader, 'officer'))
+        ->toThrow(ValidationException::class, 'A guild must always have at least one leader.');
+
+    expect($guild->users()->whereKey($leader->id)->firstOrFail()->pivot->role)
+        ->toBe('leader');
+});
+
+test('change role allows demoting a leader when another leader remains', function (): void {
+    $leader = User::factory()->create();
+    $secondLeader = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($leader, [
+        'name' => 'Leader Demotion Guild',
+        'is_open' => true,
+    ]);
+    $guild->users()->attach($secondLeader->id, [
+        'role' => 'leader',
+        'joined_at' => now(),
+    ]);
+
+    $service->changeRole($guild, $leader, $secondLeader, 'officer');
+
+    expect($guild->users()->whereKey($secondLeader->id)->firstOrFail()->pivot->role)
+        ->toBe('officer');
+});

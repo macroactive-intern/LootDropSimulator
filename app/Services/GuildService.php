@@ -107,7 +107,60 @@ class GuildService
 
     public function changeRole(Guild $guild, User $actor, User $target, string $role): void
     {
-        //
+        DB::transaction(function () use ($guild, $actor, $target, $role): void {
+            if (! in_array($role, ['leader', 'officer', 'member'], true)) {
+                throw ValidationException::withMessages([
+                    'role' => 'Invalid guild role.',
+                ]);
+            }
+
+            $members = DB::table('guild_user')
+                ->where('guild_id', $guild->id)
+                ->lockForUpdate()
+                ->get();
+
+            $actorMembership = $members->firstWhere('user_id', $actor->id);
+            $targetMembership = $members->firstWhere('user_id', $target->id);
+
+            if ($actorMembership?->role !== 'leader') {
+                throw ValidationException::withMessages([
+                    'guild' => 'Only guild leaders can change member roles.',
+                ]);
+            }
+
+            if ($targetMembership === null) {
+                throw ValidationException::withMessages([
+                    'guild' => 'Target user is not a member of this guild.',
+                ]);
+            }
+
+            if ($targetMembership->role === $role) {
+                throw ValidationException::withMessages([
+                    'role' => 'Target user already has this role.',
+                ]);
+            }
+
+            if (! $this->isValidRoleTransition($targetMembership->role, $role)) {
+                throw ValidationException::withMessages([
+                    'role' => 'Invalid guild role transition.',
+                ]);
+            }
+
+            $leaderCount = $members
+                ->where('role', 'leader')
+                ->count();
+
+            if ($targetMembership->role === 'leader' && $role !== 'leader' && $leaderCount <= 1) {
+                throw ValidationException::withMessages([
+                    'guild' => 'A guild must always have at least one leader.',
+                ]);
+            }
+
+            DB::table('guild_user')
+                ->where('guild_id', $guild->id)
+                ->where('user_id', $target->id)
+                ->update(['role' => $role]);
+        });
     }
 
     public function depositTreasury(Guild $guild, User $actor, int $amount): void
@@ -131,5 +184,15 @@ class GuildService
     public function acceptInvite(GuildInvite $invite, User $user): void
     {
         //
+    }
+
+    private function isValidRoleTransition(string $fromRole, string $toRole): bool
+    {
+        return match ($fromRole) {
+            'member' => $toRole === 'officer',
+            'officer' => in_array($toRole, ['leader', 'member'], true),
+            'leader' => $toRole === 'officer',
+            default => false,
+        };
     }
 }
