@@ -7,6 +7,7 @@ use App\Models\GuildEvent;
 use App\Models\GuildInvite;
 use App\Models\GuildMember;
 use App\Models\User;
+use App\Support\GuildMemberAuditContext;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,6 +19,7 @@ class GuildService
 {
     public function __construct(
         private readonly Dispatcher $events,
+        private readonly GuildMemberAuditContext $guildMemberAuditContext,
     ) {
     }
 
@@ -137,11 +139,7 @@ class GuildService
                 ]);
             }
 
-            GuildMember::query()
-                ->where('guild_id', $guild->id)
-                ->where('user_id', $user->id)
-                ->firstOrFail()
-                ->delete();
+            $this->deleteGuildMemberWithAuditIntent($guild->id, $user->id, 'leave', $user->id);
         });
     }
 
@@ -190,11 +188,7 @@ class GuildService
                 ]);
             }
 
-            GuildMember::query()
-                ->where('guild_id', $guild->id)
-                ->where('user_id', $target->id)
-                ->firstOrFail()
-                ->delete();
+            $this->deleteGuildMemberWithAuditIntent($guild->id, $target->id, 'kick', $actor->id);
         });
     }
 
@@ -508,6 +502,25 @@ class GuildService
                 ->where('guild_user.user_id', $user->id)
                 ->limit(1),
         ]);
+    }
+
+    private function deleteGuildMemberWithAuditIntent(
+        int $guildId,
+        int $userId,
+        string $eventType,
+        int $actorId
+    ): void {
+        $this->guildMemberAuditContext->rememberDeletion($guildId, $userId, $eventType, $actorId);
+
+        try {
+            GuildMember::query()
+                ->where('guild_id', $guildId)
+                ->where('user_id', $userId)
+                ->firstOrFail()
+                ->delete();
+        } finally {
+            $this->guildMemberAuditContext->forgetDeletion($guildId, $userId);
+        }
     }
 
     private function isValidRoleTransition(string $fromRole, string $toRole): bool
