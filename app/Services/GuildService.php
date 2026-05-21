@@ -450,14 +450,8 @@ class GuildService
         });
     }
 
-    private function acceptLockedInvite(?GuildInvite $lockedInvite, User $user): void
+    private function acceptLockedInvite(GuildInvite $lockedInvite, User $user): void
     {
-        if ($lockedInvite === null) {
-            throw ValidationException::withMessages([
-                'token' => 'Guild invite does not exist.',
-            ]);
-        }
-
         if ($lockedInvite->expires_at->isPast()) {
             throw ValidationException::withMessages([
                 'token' => 'Guild invite has expired.',
