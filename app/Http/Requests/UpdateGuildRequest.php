@@ -31,7 +31,7 @@ class UpdateGuildRequest extends FormRequest
                 'max:255',
                 Rule::unique('guilds', 'name')->ignore($this->route('guild')),
             ],
-            'description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string', 'max:1000'],
             'is_open' => ['sometimes', 'boolean'],
         ];
     }

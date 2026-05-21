@@ -3,6 +3,7 @@
 use App\Http\Requests\StoreGuildRequest;
 use App\Http\Requests\TreasuryDepositRequest;
 use App\Http\Requests\TreasuryWithdrawRequest;
+use App\Http\Requests\UpdateGuildRequest;
 use App\Http\Requests\UpdateMemberRoleRequest;
 use App\Models\Guild;
 use App\Models\User;
@@ -30,6 +31,26 @@ test('store guild request validates guild creation input', function (): void {
             'name' => 'Existing Guild',
             'is_open' => 'not-a-boolean',
         ], $rules)->fails())->toBeTrue();
+});
+
+test('guild request descriptions have a maximum length', function (): void {
+    $storeRules = (new StoreGuildRequest())->rules();
+    $updateRules = (new UpdateGuildRequest())->rules();
+
+    expect(Validator::make([
+        'name' => 'New Guild',
+        'description' => str_repeat('a', 1000),
+    ], $storeRules)->passes())->toBeTrue()
+        ->and(Validator::make([
+            'name' => 'New Guild',
+            'description' => str_repeat('a', 1001),
+        ], $storeRules)->fails())->toBeTrue()
+        ->and(Validator::make([
+            'description' => str_repeat('a', 1000),
+        ], $updateRules)->passes())->toBeTrue()
+        ->and(Validator::make([
+            'description' => str_repeat('a', 1001),
+        ], $updateRules)->fails())->toBeTrue();
 });
 
 test('member role request only accepts guild roles', function (): void {

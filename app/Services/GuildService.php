@@ -608,7 +608,7 @@ class GuildService
         return match ($fromRole) {
             'member' => $toRole === 'officer',
             'officer' => in_array($toRole, ['leader', 'member'], true),
-            'leader' => $toRole === 'officer',
+            'leader' => in_array($toRole, ['officer', 'member'], true),
             default => false,
         };
     }

@@ -334,7 +334,7 @@ test('change role prevents demoting the last leader', function (): void {
         ->toBe('leader');
 });
 
-test('change role allows demoting a leader when another leader remains', function (): void {
+test('change role allows demoting a leader directly to member when another leader remains', function (): void {
     $leader = User::factory()->create();
     $secondLeader = User::factory()->create();
     $service = app(GuildService::class);
@@ -347,10 +347,10 @@ test('change role allows demoting a leader when another leader remains', functio
         'joined_at' => now(),
     ]);
 
-    $service->changeRole($guild, $leader, $secondLeader, 'officer');
+    $service->changeRole($guild, $leader, $secondLeader, 'member');
 
     expect($guild->users()->whereKey($secondLeader->id)->firstOrFail()->pivot->role)
-        ->toBe('officer');
+        ->toBe('member');
 });
 
 test('kick member allows leaders to kick members and officers', function (): void {
