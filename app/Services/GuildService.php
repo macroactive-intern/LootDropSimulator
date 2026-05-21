@@ -289,7 +289,7 @@ class GuildService
     public function depositTreasury(Guild $guild, User $actor, int $amount): void
     {
         DB::transaction(function () use ($guild, $actor, $amount): void {
-            Guild::query()
+            $lockedGuild = Guild::query()
                 ->whereKey($guild->id)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -306,9 +306,7 @@ class GuildService
                 ]);
             }
 
-            Guild::query()
-                ->whereKey($guild->id)
-                ->increment('treasury_balance', $amount);
+            $lockedGuild->increment('treasury_balance', $amount);
 
             DB::table('guild_user')
                 ->where('guild_id', $guild->id)

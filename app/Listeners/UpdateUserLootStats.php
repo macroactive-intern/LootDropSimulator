@@ -22,25 +22,18 @@ class UpdateUserLootStats
     {
         $droppedItem = $event->droppedItem;
 
-        $stats = UserLootStat::query()->updateOrCreate(
-            ['user_id' => $droppedItem->user_id],
-            ['last_drop_at' => now()]
-        );
-
-        $stats->increment('total_drops');
-
-        if ($droppedItem->rarity === 'legendary') {
-            $stats->increment('legendary_count');
-        }
-
-        if ($droppedItem->rarity === 'common') {
-            $stats->increment('consecutive_common_drops');
-
-            return;
-        }
+        $stats = UserLootStat::query()
+            ->where('user_id', $droppedItem->user_id)
+            ->lockForUpdate()
+            ->firstOrNew(['user_id' => $droppedItem->user_id]);
 
         $stats->forceFill([
-            'consecutive_common_drops' => 0,
+            'total_drops' => $stats->total_drops + 1,
+            'legendary_count' => $stats->legendary_count + ($droppedItem->rarity === 'legendary' ? 1 : 0),
+            'consecutive_common_drops' => $droppedItem->rarity === 'common'
+                ? $stats->consecutive_common_drops + 1
+                : 0,
+            'last_drop_at' => now(),
         ])->save();
     }
 }

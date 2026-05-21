@@ -2,11 +2,13 @@
 
 use App\Events\LootDropped;
 use App\Jobs\LootDropJob;
+use App\Listeners\UpdateUserLootStats;
 use App\Models\DroppedItem;
 use App\Models\User;
 use App\Models\UserLootStat;
 use App\Services\LootService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 
@@ -96,6 +98,33 @@ test('common streak increments and resets on rare or higher drop', function (): 
     $stats->refresh();
 
     expect($stats->total_drops)->toBe(3)
+        ->and($stats->consecutive_common_drops)->toBe(0);
+});
+
+test('loot stat listener updates existing stats with one combined write', function (): void {
+    $user = User::factory()->create();
+    UserLootStat::query()->create([
+        'user_id' => $user->id,
+        'total_drops' => 4,
+        'legendary_count' => 1,
+        'consecutive_common_drops' => 2,
+    ]);
+    $droppedItem = createLootSystemDroppedItem($user, rarity: 'legendary');
+
+    DB::enableQueryLog();
+
+    app(UpdateUserLootStats::class)->handle(new LootDropped($droppedItem));
+
+    $statQueries = collect(DB::getQueryLog())
+        ->filter(fn (array $query): bool => str_contains($query['query'], 'user_loot_stats'))
+        ->values();
+    $stats = UserLootStat::query()->where('user_id', $user->id)->firstOrFail();
+
+    expect($statQueries)->toHaveCount(2)
+        ->and($statQueries[0]['query'])->toContain('select')
+        ->and($statQueries[1]['query'])->toContain('update')
+        ->and($stats->total_drops)->toBe(5)
+        ->and($stats->legendary_count)->toBe(2)
         ->and($stats->consecutive_common_drops)->toBe(0);
 });
 
