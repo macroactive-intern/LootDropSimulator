@@ -123,6 +123,8 @@ class GuildService
             }
 
             try {
+                $this->guildMemberAuditContext->rememberCreation($lockedGuild->id, $lockedUser->id, $lockedUser->id);
+
                 $lockedGuild->users()->attach($lockedUser->id, [
                     'role' => 'member',
                     'joined_at' => now(),
@@ -135,6 +137,8 @@ class GuildService
                 }
 
                 throw $exception;
+            } finally {
+                $this->guildMemberAuditContext->forgetCreation($lockedGuild->id, $lockedUser->id);
             }
         });
     }
@@ -274,7 +278,13 @@ class GuildService
                 ->where('user_id', $target->id)
                 ->firstOrFail();
 
-            $targetMember->forceFill(['role' => $role])->save();
+            $this->guildMemberAuditContext->rememberUpdate($guild->id, $target->id, $actor->id);
+
+            try {
+                $targetMember->forceFill(['role' => $role])->save();
+            } finally {
+                $this->guildMemberAuditContext->forgetUpdate($guild->id, $target->id);
+            }
         });
     }
 
@@ -362,19 +372,34 @@ class GuildService
     public function createInvite(Guild $guild, User $inviter, array $data): GuildInvite
     {
         return DB::transaction(function () use ($guild, $inviter, $data): GuildInvite {
+            $lockedGuild = Guild::query()
+                ->whereKey($guild->id)
+                ->lockForUpdate()
+                ->firstOrFail();
             $email = $data['email'];
             $invitedUser = User::query()
                 ->where('email', $email)
                 ->first();
 
-            if ($invitedUser !== null && $guild->users()->whereKey($invitedUser->id)->exists()) {
+            if ($invitedUser !== null && $lockedGuild->users()->whereKey($invitedUser->id)->exists()) {
                 throw ValidationException::withMessages([
                     'email' => 'User is already a member of this guild.',
                 ]);
             }
 
+            if (GuildInvite::query()
+                ->where('guild_id', $lockedGuild->id)
+                ->where('email', $email)
+                ->whereNull('accepted_at')
+                ->where('expires_at', '>', now())
+                ->exists()) {
+                throw ValidationException::withMessages([
+                    'email' => 'A pending invite already exists for this email.',
+                ]);
+            }
+
             $invite = GuildInvite::query()->create([
-                'guild_id' => $guild->id,
+                'guild_id' => $lockedGuild->id,
                 'invited_by' => $inviter->id,
                 'email' => $email,
                 'token' => (string) Str::uuid(),
@@ -382,7 +407,7 @@ class GuildService
             ]);
 
             GuildEvent::query()->create([
-                'guild_id' => $guild->id,
+                'guild_id' => $lockedGuild->id,
                 'actor_id' => $inviter->id,
                 'target_id' => $invitedUser?->id,
                 'event_type' => 'invite_sent',
@@ -465,13 +490,19 @@ class GuildService
             ]);
         }
 
-        GuildMember::query()->create([
-            'guild_id' => $lockedInvite->guild_id,
-            'user_id' => $user->id,
-            'role' => 'member',
-            'joined_at' => now(),
-            'contributed_gold' => 0,
-        ]);
+        $this->guildMemberAuditContext->rememberCreation($lockedInvite->guild_id, $user->id, $user->id);
+
+        try {
+            GuildMember::query()->create([
+                'guild_id' => $lockedInvite->guild_id,
+                'user_id' => $user->id,
+                'role' => 'member',
+                'joined_at' => now(),
+                'contributed_gold' => 0,
+            ]);
+        } finally {
+            $this->guildMemberAuditContext->forgetCreation($lockedInvite->guild_id, $user->id);
+        }
 
         $lockedInvite->forceFill([
             'accepted_at' => now(),

@@ -41,7 +41,7 @@ test('guild member observer logs join event metadata', function (): void {
     expect(GuildEvent::query()->count())->toBe(1)
         ->and($event->guild_id)->toBe($guild->id)
         ->and($event->target_id)->toBe($member->id)
-        ->and($event->actor_id)->toBeNull()
+        ->and($event->actor_id)->toBe($member->id)
         ->and($event->event_type)->toBe('join')
         ->and($event->metadata)->toBe([
             'role' => 'member',
@@ -124,7 +124,7 @@ test('guild member observer logs promote event metadata', function (): void {
     expect(GuildEvent::query()->count())->toBe(1)
         ->and($event->guild_id)->toBe($guild->id)
         ->and($event->target_id)->toBe($member->id)
-        ->and($event->actor_id)->toBeNull()
+        ->and($event->actor_id)->toBe($leader->id)
         ->and($event->event_type)->toBe('promote')
         ->and($event->metadata)->toBe([
             'from_role' => 'member',
@@ -149,7 +149,7 @@ test('guild member observer logs demote event metadata', function (): void {
     expect(GuildEvent::query()->count())->toBe(1)
         ->and($event->guild_id)->toBe($guild->id)
         ->and($event->target_id)->toBe($member->id)
-        ->and($event->actor_id)->toBeNull()
+        ->and($event->actor_id)->toBe($leader->id)
         ->and($event->event_type)->toBe('demote')
         ->and($event->metadata)->toBe([
             'from_role' => 'officer',
@@ -182,14 +182,17 @@ test('guild member observer logs the full membership audit sequence', function (
             'leave',
         ])
         ->and($events[0]->metadata['role'])->toBe('member')
+        ->and($events[0]->actor_id)->toBe($member->id)
         ->and($events[1]->metadata)->toBe([
             'from_role' => 'member',
             'to_role' => 'officer',
         ])
+        ->and($events[1]->actor_id)->toBe($leader->id)
         ->and($events[2]->metadata)->toBe([
             'from_role' => 'officer',
             'to_role' => 'member',
         ])
+        ->and($events[2]->actor_id)->toBe($leader->id)
         ->and($events[3]->metadata['role'])->toBe('member')
         ->and($events[3]->metadata['contributed_gold'])->toBe(0)
         ->and($events[3]->actor_id)->toBe($member->id);

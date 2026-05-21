@@ -11,10 +11,13 @@ class GuildMemberObserver
 {
     public function created(GuildMember $guildMember): void
     {
+        $creationContext = app(GuildMemberAuditContext::class)
+            ->consumeCreation($guildMember->guild_id, $guildMember->user_id);
+
         $this->recordMembershipEvent($guildMember, 'join', [
             'role' => $guildMember->role,
             'joined_at' => $guildMember->joined_at?->toISOString(),
-        ]);
+        ], $creationContext['actor_id'] ?? null);
     }
 
     public function updated(GuildMember $guildMember): void
@@ -28,11 +31,13 @@ class GuildMemberObserver
         $eventType = GuildRole::rank($toRole) > GuildRole::rank($fromRole)
             ? 'promote'
             : 'demote';
+        $updateContext = app(GuildMemberAuditContext::class)
+            ->consumeUpdate($guildMember->guild_id, $guildMember->user_id);
 
         $this->recordMembershipEvent($guildMember, $eventType, [
             'from_role' => $fromRole,
             'to_role' => $toRole,
-        ]);
+        ], $updateContext['actor_id'] ?? null);
     }
 
     public function deleted(GuildMember $guildMember): void

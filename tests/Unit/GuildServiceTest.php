@@ -593,6 +593,28 @@ test('create invite stores inviter token and forty eight hour expiry', function 
             ->exists())->toBeTrue();
 });
 
+test('create invite rejects duplicate pending invites for the same email', function (): void {
+    $leader = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($leader, [
+        'name' => 'Duplicate Pending Invite Guild',
+        'is_open' => false,
+    ]);
+
+    $service->createInvite($guild, $leader, [
+        'email' => 'pending@example.com',
+    ]);
+
+    expect(fn () => $service->createInvite($guild, $leader, [
+        'email' => 'pending@example.com',
+    ]))->toThrow(ValidationException::class, 'A pending invite already exists for this email.');
+
+    expect(GuildInvite::query()
+        ->where('guild_id', $guild->id)
+        ->where('email', 'pending@example.com')
+        ->count())->toBe(1);
+});
+
 test('create invite rejects existing guild members by email', function (): void {
     $leader = User::factory()->create();
     $member = User::factory()->create(['email' => 'member@example.com']);
@@ -643,7 +665,7 @@ test('accept invite adds the user as a member and marks the invite accepted', fu
         ->and($member->pivot->joined_at)->not->toBeNull()
         ->and($member->pivot->contributed_gold)->toBe(0)
         ->and($invite->refresh()->accepted_at->equalTo($now))->toBeTrue()
-        ->and($joinEvent->actor_id)->toBeNull()
+        ->and($joinEvent->actor_id)->toBe($user->id)
         ->and($joinEvent->target_id)->toBe($user->id)
         ->and($joinEvent->metadata)->toBe([
             'role' => 'member',
