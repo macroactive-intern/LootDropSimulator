@@ -8,6 +8,7 @@ use App\Models\GuildInvite;
 use App\Models\GuildMember;
 use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -22,6 +23,19 @@ class GuildService
     /**
      * @param  array<string, mixed>  $data
      */
+    public function listGuilds(): LengthAwarePaginator
+    {
+        return Guild::query()
+            ->withCount('users')
+            ->latest('id')
+            ->paginate(15);
+    }
+
+    public function getGuild(Guild $guild): Guild
+    {
+        return $guild->loadCount('users');
+    }
+
     public function createGuild(User $creator, array $data): Guild
     {
         return DB::transaction(function () use ($creator, $data): Guild {
@@ -39,6 +53,31 @@ class GuildService
             ]);
 
             return $guild;
+        });
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function updateGuild(Guild $guild, array $data): Guild
+    {
+        return DB::transaction(function () use ($guild, $data): Guild {
+            $guild->fill([
+                'name' => $data['name'] ?? $guild->name,
+                'description' => array_key_exists('description', $data)
+                    ? $data['description']
+                    : $guild->description,
+                'is_open' => $data['is_open'] ?? $guild->is_open,
+            ])->save();
+
+            return $guild->refresh();
+        });
+    }
+
+    public function deleteGuild(Guild $guild): void
+    {
+        DB::transaction(function () use ($guild): void {
+            $guild->delete();
         });
     }
 
@@ -377,6 +416,13 @@ class GuildService
                 'accepted_at' => now(),
             ])->save();
         });
+    }
+
+    public function guildEvents(Guild $guild): LengthAwarePaginator
+    {
+        return $guild->events()
+            ->latest('id')
+            ->paginate(15);
     }
 
     private function isValidRoleTransition(string $fromRole, string $toRole): bool

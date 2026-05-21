@@ -7,6 +7,21 @@ use App\Models\User;
 
 class GuildPolicy
 {
+    public function viewAny(User $user): bool
+    {
+        return true;
+    }
+
+    public function view(User $user, Guild $guild): bool
+    {
+        return $guild->is_open || $this->roleFor($user, $guild) !== null;
+    }
+
+    public function create(User $user): bool
+    {
+        return true;
+    }
+
     public function update(User $user, Guild $guild): bool
     {
         return $this->roleFor($user, $guild) === 'leader';
@@ -49,6 +64,16 @@ class GuildPolicy
     }
 
     public function deposit(User $user, Guild $guild): bool
+    {
+        return $this->roleFor($user, $guild) !== null;
+    }
+
+    public function join(User $user, Guild $guild): bool
+    {
+        return true;
+    }
+
+    public function leave(User $user, Guild $guild): bool
     {
         return $this->roleFor($user, $guild) !== null;
     }
