@@ -54,13 +54,13 @@ class GuildPolicy
     public function promote(User $user, Guild $guild, User $target): bool
     {
         return $this->roleFor($user, $guild) === 'leader'
-            && $this->roleFor($target, $guild) === 'member';
+            && in_array($this->roleFor($target, $guild), ['member', 'officer'], true);
     }
 
     public function demote(User $user, Guild $guild, User $target): bool
     {
         return $this->roleFor($user, $guild) === 'leader'
-            && $this->roleFor($target, $guild) === 'officer';
+            && in_array($this->roleFor($target, $guild), ['leader', 'officer'], true);
     }
 
     public function deposit(User $user, Guild $guild): bool

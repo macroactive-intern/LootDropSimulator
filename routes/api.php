@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\GuildController;
+use App\Http\Controllers\Api\GuildMemberController;
 use App\Http\Controllers\Api\LootController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,5 +20,7 @@ Route::middleware('throttle:60,1')->group(function (): void {
         Route::post('/guilds/{guild}/join', [GuildController::class, 'join']);
         Route::post('/guilds/{guild}/leave', [GuildController::class, 'leave']);
         Route::get('/guilds/{guild}/events', [GuildController::class, 'events']);
+        Route::delete('/guilds/{guild}/members/{user}', [GuildMemberController::class, 'destroy']);
+        Route::patch('/guilds/{guild}/members/{user}/role', [GuildMemberController::class, 'updateRole']);
     });
 });
