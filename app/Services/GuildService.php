@@ -319,7 +319,70 @@ class GuildService
 
     public function acceptInvite(GuildInvite $invite, User $user): void
     {
-        //
+        DB::transaction(function () use ($invite, $user): void {
+            $lockedInvite = GuildInvite::query()
+                ->whereKey($invite->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($lockedInvite === null) {
+                throw ValidationException::withMessages([
+                    'token' => 'Guild invite does not exist.',
+                ]);
+            }
+
+            if ($lockedInvite->expires_at->isPast()) {
+                throw ValidationException::withMessages([
+                    'token' => 'Guild invite has expired.',
+                ]);
+            }
+
+            if ($lockedInvite->accepted_at !== null) {
+                throw ValidationException::withMessages([
+                    'token' => 'Guild invite has already been accepted.',
+                ]);
+            }
+
+            $memberships = DB::table('guild_user')
+                ->where('user_id', $user->id)
+                ->lockForUpdate()
+                ->get();
+
+            if ($memberships->contains('guild_id', $lockedInvite->guild_id)) {
+                throw ValidationException::withMessages([
+                    'guild' => 'User is already a member of this guild.',
+                ]);
+            }
+
+            if ($memberships->count() >= 5) {
+                throw ValidationException::withMessages([
+                    'guild' => 'User cannot belong to more than 5 guilds.',
+                ]);
+            }
+
+            DB::table('guild_user')->insert([
+                'guild_id' => $lockedInvite->guild_id,
+                'user_id' => $user->id,
+                'role' => 'member',
+                'joined_at' => now(),
+                'contributed_gold' => 0,
+            ]);
+
+            $lockedInvite->forceFill([
+                'accepted_at' => now(),
+            ])->save();
+
+            GuildEvent::query()->create([
+                'guild_id' => $lockedInvite->guild_id,
+                'actor_id' => $user->id,
+                'target_id' => $lockedInvite->invited_by,
+                'event_type' => 'invite_accepted',
+                'metadata' => [
+                    'invite_id' => $lockedInvite->id,
+                    'email' => $lockedInvite->email,
+                ],
+            ]);
+        });
     }
 
     private function isValidRoleTransition(string $fromRole, string $toRole): bool
