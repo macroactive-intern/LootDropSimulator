@@ -8,7 +8,6 @@ use App\Models\GuildInvite;
 use App\Models\GuildMember;
 use App\Models\User;
 use App\Support\GuildMemberAuditContext;
-use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
@@ -19,7 +18,6 @@ use Illuminate\Validation\ValidationException;
 class GuildService
 {
     public function __construct(
-        private readonly Dispatcher $events,
         private readonly GuildMemberAuditContext $guildMemberAuditContext,
     ) {
     }
