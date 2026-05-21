@@ -8,6 +8,7 @@ use App\Models\GuildInvite;
 use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class GuildService
@@ -294,7 +295,26 @@ class GuildService
      */
     public function createInvite(Guild $guild, User $inviter, array $data): GuildInvite
     {
-        //
+        return DB::transaction(function () use ($guild, $inviter, $data): GuildInvite {
+            $email = $data['email'];
+            $invitedUser = User::query()
+                ->where('email', $email)
+                ->first();
+
+            if ($invitedUser !== null && $guild->users()->whereKey($invitedUser->id)->exists()) {
+                throw ValidationException::withMessages([
+                    'email' => 'User is already a member of this guild.',
+                ]);
+            }
+
+            return GuildInvite::query()->create([
+                'guild_id' => $guild->id,
+                'invited_by' => $inviter->id,
+                'email' => $email,
+                'token' => (string) Str::uuid(),
+                'expires_at' => now()->addHours(48),
+            ]);
+        });
     }
 
     public function acceptInvite(GuildInvite $invite, User $user): void

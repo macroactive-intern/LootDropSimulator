@@ -2,6 +2,7 @@
 
 use App\Models\Guild;
 use App\Models\GuildEvent;
+use App\Models\GuildInvite;
 use App\Models\User;
 use App\Services\GuildService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -487,4 +488,46 @@ test('withdraw treasury prevents overdrafts', function (): void {
 
     expect($guild->refresh()->treasury_balance)->toBe(50)
         ->and(GuildEvent::query()->where('guild_id', $guild->id)->exists())->toBeFalse();
+});
+
+test('create invite stores inviter token and forty eight hour expiry', function (): void {
+    $leader = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($leader, [
+        'name' => 'Invite Guild',
+        'is_open' => true,
+    ]);
+    $now = now()->startOfSecond();
+
+    $this->travelTo($now);
+
+    $invite = $service->createInvite($guild, $leader, [
+        'email' => 'new-member@example.com',
+    ]);
+
+    expect($invite)->toBeInstanceOf(GuildInvite::class)
+        ->and($invite->guild_id)->toBe($guild->id)
+        ->and($invite->invited_by)->toBe($leader->id)
+        ->and($invite->email)->toBe('new-member@example.com')
+        ->and($invite->token)->toBeString()
+        ->and($invite->token)->not->toBe('')
+        ->and($invite->accepted_at)->toBeNull()
+        ->and($invite->expires_at->equalTo($now->copy()->addHours(48)))->toBeTrue();
+});
+
+test('create invite rejects existing guild members by email', function (): void {
+    $leader = User::factory()->create();
+    $member = User::factory()->create(['email' => 'member@example.com']);
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($leader, [
+        'name' => 'Existing Member Invite Guild',
+        'is_open' => true,
+    ]);
+    $service->joinGuild($guild, $member);
+
+    expect(fn () => $service->createInvite($guild, $leader, [
+        'email' => 'member@example.com',
+    ]))->toThrow(ValidationException::class, 'User is already a member of this guild.');
+
+    expect(GuildInvite::query()->where('guild_id', $guild->id)->exists())->toBeFalse();
 });
