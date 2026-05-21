@@ -122,3 +122,65 @@ test('join guild rejects users already in five guilds', function (): void {
 
     expect($sixthGuild->users()->whereKey($user->id)->exists())->toBeFalse();
 });
+
+test('leave guild removes a non leader membership', function (): void {
+    $creator = User::factory()->create();
+    $member = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($creator, [
+        'name' => 'Leave Guild',
+        'is_open' => true,
+    ]);
+    $service->joinGuild($guild, $member);
+
+    $service->leaveGuild($guild, $member);
+
+    expect($guild->users()->whereKey($member->id)->exists())->toBeFalse()
+        ->and($guild->users()->whereKey($creator->id)->exists())->toBeTrue();
+});
+
+test('leave guild rejects users who are not members', function (): void {
+    $creator = User::factory()->create();
+    $outsider = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($creator, [
+        'name' => 'Outsider Guild',
+        'is_open' => true,
+    ]);
+
+    expect(fn () => $service->leaveGuild($guild, $outsider))
+        ->toThrow(ValidationException::class, 'User is not a member of this guild.');
+});
+
+test('leave guild prevents the last leader from leaving', function (): void {
+    $creator = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($creator, [
+        'name' => 'Last Leader Guild',
+        'is_open' => true,
+    ]);
+
+    expect(fn () => $service->leaveGuild($guild, $creator))
+        ->toThrow(ValidationException::class, 'A guild must always have at least one leader.');
+
+    expect($guild->users()->whereKey($creator->id)->exists())->toBeTrue();
+});
+
+test('leave guild allows a leader to leave when another leader remains', function (): void {
+    $creator = User::factory()->create();
+    $secondLeader = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($creator, [
+        'name' => 'Multi Leader Guild',
+        'is_open' => true,
+    ]);
+    $guild->users()->attach($secondLeader->id, [
+        'role' => 'leader',
+        'joined_at' => now(),
+    ]);
+
+    $service->leaveGuild($guild, $creator);
+
+    expect($guild->users()->whereKey($creator->id)->exists())->toBeFalse()
+        ->and($guild->users()->whereKey($secondLeader->id)->exists())->toBeTrue();
+});

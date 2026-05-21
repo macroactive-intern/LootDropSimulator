@@ -69,7 +69,35 @@ class GuildService
 
     public function leaveGuild(Guild $guild, User $user): void
     {
-        //
+        DB::transaction(function () use ($guild, $user): void {
+            $members = DB::table('guild_user')
+                ->where('guild_id', $guild->id)
+                ->lockForUpdate()
+                ->get();
+
+            $membership = $members->firstWhere('user_id', $user->id);
+
+            if ($membership === null) {
+                throw ValidationException::withMessages([
+                    'guild' => 'User is not a member of this guild.',
+                ]);
+            }
+
+            $leaderCount = $members
+                ->where('role', 'leader')
+                ->count();
+
+            if ($membership->role === 'leader' && $leaderCount <= 1) {
+                throw ValidationException::withMessages([
+                    'guild' => 'A guild must always have at least one leader.',
+                ]);
+            }
+
+            DB::table('guild_user')
+                ->where('guild_id', $guild->id)
+                ->where('user_id', $user->id)
+                ->delete();
+        });
     }
 
     public function kickMember(Guild $guild, User $actor, User $target): void
