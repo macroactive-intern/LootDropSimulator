@@ -30,32 +30,14 @@ class GuildMemberController extends Controller
 
     public function updateRole(UpdateMemberRoleRequest $request, Guild $guild, User $user): GuildMemberResource
     {
-        $currentRole = $guild->users()
-            ->whereKey($user->id)
-            ->firstOrFail()
-            ->pivot
-            ->role;
         $newRole = $request->validated('role');
 
-        Gate::authorize(
-            $this->roleRank($newRole) > $this->roleRank($currentRole) ? 'promote' : 'demote',
-            [$guild, $user],
-        );
+        Gate::authorize('changeRole', [$guild, $user]);
 
         $this->guildService->changeRole($guild, $request->user(), $user, $newRole);
 
         return new GuildMemberResource(
             $this->guildService->guildMember($guild, $user),
         );
-    }
-
-    private function roleRank(string $role): int
-    {
-        return match ($role) {
-            'leader' => 3,
-            'officer' => 2,
-            'member' => 1,
-            default => 0,
-        };
     }
 }

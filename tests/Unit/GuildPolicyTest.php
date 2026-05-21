@@ -44,6 +44,8 @@ test('guild leader can manage the guild except deleting when not creator', funct
         ->and(Gate::forUser($leader)->allows('kick', [$guild, $officer]))->toBeTrue()
         ->and(Gate::forUser($leader)->allows('promote', [$guild, $member]))->toBeTrue()
         ->and(Gate::forUser($leader)->allows('demote', [$guild, $officer]))->toBeTrue()
+        ->and(Gate::forUser($leader)->allows('changeRole', [$guild, $member]))->toBeTrue()
+        ->and(Gate::forUser($leader)->allows('changeRole', [$guild, User::factory()->create()]))->toBeFalse()
         ->and(Gate::forUser($leader)->allows('deposit', $guild))->toBeTrue()
         ->and(Gate::forUser($leader)->allows('withdraw', $guild))->toBeTrue()
         ->and(Gate::forUser($leader)->allows('viewEvents', $guild))->toBeTrue()
@@ -79,6 +81,7 @@ test('guild officers can invite kick members deposit and view events only', func
         ->and(Gate::forUser($officer)->allows('delete', $guild))->toBeFalse()
         ->and(Gate::forUser($officer)->allows('promote', [$guild, $member]))->toBeFalse()
         ->and(Gate::forUser($officer)->allows('demote', [$guild, $otherOfficer]))->toBeFalse()
+        ->and(Gate::forUser($officer)->allows('changeRole', [$guild, $member]))->toBeFalse()
         ->and(Gate::forUser($officer)->allows('withdraw', $guild))->toBeFalse();
 });
 
@@ -96,6 +99,7 @@ test('guild members can only deposit', function (): void {
         ->and(Gate::forUser($member)->allows('kick', [$guild, $otherMember]))->toBeFalse()
         ->and(Gate::forUser($member)->allows('promote', [$guild, $otherMember]))->toBeFalse()
         ->and(Gate::forUser($member)->allows('demote', [$guild, $otherMember]))->toBeFalse()
+        ->and(Gate::forUser($member)->allows('changeRole', [$guild, $otherMember]))->toBeFalse()
         ->and(Gate::forUser($member)->allows('withdraw', $guild))->toBeFalse()
         ->and(Gate::forUser($member)->allows('viewEvents', $guild))->toBeFalse();
 });
@@ -111,6 +115,7 @@ test('non members cannot use guild permissions', function (): void {
     expect(Gate::forUser($outsider)->allows('update', $guild))->toBeFalse()
         ->and(Gate::forUser($outsider)->allows('invite', $guild))->toBeFalse()
         ->and(Gate::forUser($outsider)->allows('kick', [$guild, $member]))->toBeFalse()
+        ->and(Gate::forUser($outsider)->allows('changeRole', [$guild, $member]))->toBeFalse()
         ->and(Gate::forUser($outsider)->allows('deposit', $guild))->toBeFalse()
         ->and(Gate::forUser($outsider)->allows('withdraw', $guild))->toBeFalse()
         ->and(Gate::forUser($outsider)->allows('viewEvents', $guild))->toBeFalse();

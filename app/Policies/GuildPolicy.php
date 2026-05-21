@@ -63,6 +63,12 @@ class GuildPolicy
             && in_array($this->roleFor($target, $guild), ['leader', 'officer'], true);
     }
 
+    public function changeRole(User $user, Guild $guild, User $target): bool
+    {
+        return $this->roleFor($user, $guild) === 'leader'
+            && $this->roleFor($target, $guild) !== null;
+    }
+
     public function deposit(User $user, Guild $guild): bool
     {
         return $this->roleFor($user, $guild) !== null;
