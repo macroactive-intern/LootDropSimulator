@@ -77,6 +77,28 @@ test('legendary multiplier only changes legendary weights', function (): void {
     expect($loot['name'])->toBe('Guaranteed Sword');
 });
 
+test('it throws when no loot items can be rolled', function (): void {
+    $lootTable = new LootTable([]);
+
+    expect(fn () => $lootTable->roll())
+        ->toThrow(UnexpectedValueException::class, 'Loot table has no rollable items.');
+});
+
+test('it throws when configured loot weights are not rollable', function (): void {
+    $lootTable = new LootTable([
+        [
+            'name' => 'Weightless Sword',
+            'weight' => 0,
+            'rarity' => 'common',
+            'stackable' => false,
+            'max_stack' => 1,
+        ],
+    ]);
+
+    expect(fn () => $lootTable->roll())
+        ->toThrow(UnexpectedValueException::class, 'Loot table has no rollable items.');
+});
+
 test('configured rarity distribution matches weight order', function (): void {
     mt_srand(1234);
 

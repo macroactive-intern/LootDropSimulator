@@ -86,6 +86,38 @@ test('it guarantees rare or higher after ten consecutive commons', function (): 
         ->and($droppedItem->rarity)->toBe('rare');
 });
 
+test('it fails clearly when pity filtering leaves no rollable loot', function (): void {
+    Event::fake([LootDropped::class]);
+
+    config()->set('loot.items', [
+        [
+            'name' => 'Common Sword',
+            'weight' => 100,
+            'rarity' => 'common',
+            'stackable' => false,
+            'max_stack' => 1,
+        ],
+    ]);
+
+    $user = User::factory()->create();
+    UserLootStat::query()->create([
+        'user_id' => $user->id,
+        'total_drops' => 10,
+        'legendary_count' => 0,
+        'consecutive_common_drops' => 10,
+    ]);
+
+    expect(fn () => app(LootService::class)->roll(
+        userId: $user->id,
+        source: 'misconfigured_pity_test',
+    ))->toThrow(UnexpectedValueException::class, 'Loot table has no rollable items.');
+
+    $this->assertDatabaseMissing('dropped_items', [
+        'user_id' => $user->id,
+        'source' => 'misconfigured_pity_test',
+    ]);
+});
+
 test('it clamps invalid stack max to at least one', function (): void {
     Event::fake([LootDropped::class]);
 

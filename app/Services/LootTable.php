@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use UnexpectedValueException;
+
 class LootTable
 {
     /**
@@ -37,7 +39,7 @@ class LootTable
         $totalWeight = array_sum(array_column($weightedItems, 'weight'));
 
         if ($totalWeight <= 0) {
-            return [];
+            throw new UnexpectedValueException('Loot table has no rollable items.');
         }
 
         // Weighted selection works by choosing a random point on a line whose
