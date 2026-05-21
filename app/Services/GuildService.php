@@ -445,7 +445,7 @@ class GuildService
 
             $this->acceptLockedInvite($lockedInvite, $user);
 
-            return $lockedInvite->guild()->firstOrFail();
+            return $this->getGuild($lockedInvite->guild()->firstOrFail(), $user);
         });
     }
 

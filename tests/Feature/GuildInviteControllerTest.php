@@ -97,7 +97,7 @@ test('invite token can be accepted without authentication', function (): void {
         ->assertOk()
         ->assertJsonPath('data.id', $guild->id)
         ->assertJsonPath('data.member_count', 2)
-        ->assertJsonPath('data.current_user_role', null);
+        ->assertJsonPath('data.current_user_role', 'member');
 
     expect($guild->users()->whereKey($invitedUser->id)->firstOrFail()->pivot->role)
         ->toBe('member')

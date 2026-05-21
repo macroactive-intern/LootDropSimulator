@@ -647,7 +647,7 @@ test('accept invite adds the user as a member and marks the invite accepted', fu
 
     $this->travelTo($now);
 
-    $service->acceptInviteToken($invite->token);
+    $acceptedGuild = $service->acceptInviteToken($invite->token);
 
     $member = $guild->users()->whereKey($user->id)->firstOrFail();
     $joinEvent = GuildEvent::query()
@@ -677,7 +677,8 @@ test('accept invite adds the user as a member and marks the invite accepted', fu
             'email' => 'accepted@example.com',
             'invited_by' => $leader->id,
             'accepted_at' => $now->toISOString(),
-        ]);
+        ])
+        ->and($acceptedGuild->current_user_role)->toBe('member');
 });
 
 test('accept invite rejects missing invite tokens', function (): void {

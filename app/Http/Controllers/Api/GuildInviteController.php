@@ -37,6 +37,6 @@ class GuildInviteController extends Controller
     {
         $guild = $this->guildService->acceptInviteToken($token);
 
-        return new GuildResource($this->guildService->getGuild($guild));
+        return new GuildResource($guild);
     }
 }

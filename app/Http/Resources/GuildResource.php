@@ -41,7 +41,7 @@ class GuildResource extends JsonResource
 
     private function currentUserRole(?User $user): ?string
     {
-        if (array_key_exists('current_user_role', $this->resource->getAttributes())) {
+        if (isset($this->current_user_role)) {
             return $this->current_user_role;
         }
 
