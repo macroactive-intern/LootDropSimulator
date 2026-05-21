@@ -66,3 +66,14 @@ test('guild models expose their relationships', function (): void {
         ->and($guild->is_open)->toBeTrue()
         ->and($event->metadata)->toBe(['email' => 'new-member@example.com']);
 });
+
+test('guild treasury balance casts unsigned big integer values', function (): void {
+    $creator = User::factory()->create();
+    $guild = Guild::query()->create([
+        'name' => 'Big Treasury Guild',
+        'created_by' => $creator->id,
+        'treasury_balance' => 3_000_000_000,
+    ]);
+
+    expect($guild->refresh()->treasury_balance)->toBe(3_000_000_000);
+});

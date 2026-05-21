@@ -81,9 +81,7 @@ class GuildService
 
     public function deleteGuild(Guild $guild): void
     {
-        DB::transaction(function () use ($guild): void {
-            $guild->delete();
-        });
+        $guild->delete();
     }
 
     public function joinGuild(Guild $guild, User $user): void

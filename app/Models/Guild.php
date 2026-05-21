@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\UnsignedBigInteger;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -20,7 +21,7 @@ class Guild extends Model
     protected function casts(): array
     {
         return [
-            'treasury_balance' => 'integer',
+            'treasury_balance' => UnsignedBigInteger::class,
             'is_open' => 'boolean',
         ];
     }
