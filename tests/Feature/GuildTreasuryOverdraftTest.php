@@ -59,7 +59,7 @@ test('treasury overdraft protection still uses a row lock before balance updates
     $source = file_get_contents(app_path('Services/GuildService.php'));
     $withdrawMethodStart = strpos($source, 'public function withdrawTreasury');
     $lockPosition = strpos($source, '->lockForUpdate()', $withdrawMethodStart);
-    $updatePosition = strpos($source, "->update(['treasury_balance' => \$balanceAfter])", $withdrawMethodStart);
+    $updatePosition = strpos($source, "\$lockedGuild->update(['treasury_balance' => \$balanceAfter])", $withdrawMethodStart);
 
     expect($withdrawMethodStart)->not->toBeFalse()
         ->and($lockPosition)->not->toBeFalse()

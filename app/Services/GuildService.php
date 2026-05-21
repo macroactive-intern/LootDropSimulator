@@ -344,9 +344,7 @@ class GuildService
             $balanceBefore = $lockedGuild->treasury_balance;
             $balanceAfter = $balanceBefore - $amount;
 
-            Guild::query()
-                ->whereKey($guild->id)
-                ->update(['treasury_balance' => $balanceAfter]);
+            $lockedGuild->update(['treasury_balance' => $balanceAfter]);
 
             GuildEvent::query()->create([
                 'guild_id' => $guild->id,
