@@ -54,7 +54,6 @@ test('guild models expose their relationships', function (): void {
         ->and($guild->invites()->first()?->is($invite))->toBeTrue()
         ->and($guildEvent?->is($event))->toBeTrue()
         ->and($guild->users()->first()?->is($target))->toBeTrue()
-        ->and($guild->members()->first()?->is($target))->toBeTrue()
         ->and($creator->createdGuilds()->first()?->is($guild))->toBeTrue()
         ->and($creator->sentGuildInvites()->first()?->is($invite))->toBeTrue()
         ->and($creator->guildEventsActed()->first()?->is($event))->toBeTrue()

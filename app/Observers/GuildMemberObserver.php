@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\GuildEvent;
 use App\Models\GuildMember;
 use App\Support\GuildMemberAuditContext;
+use App\Support\GuildRole;
 
 class GuildMemberObserver
 {
@@ -24,7 +25,7 @@ class GuildMemberObserver
 
         $fromRole = $guildMember->getOriginal('role');
         $toRole = $guildMember->role;
-        $eventType = $this->roleRank($toRole) > $this->roleRank($fromRole)
+        $eventType = GuildRole::rank($toRole) > GuildRole::rank($fromRole)
             ? 'promote'
             : 'demote';
 
@@ -64,13 +65,4 @@ class GuildMemberObserver
         ]);
     }
 
-    private function roleRank(string $role): int
-    {
-        return match ($role) {
-            'leader' => 3,
-            'officer' => 2,
-            'member' => 1,
-            default => 0,
-        };
-    }
 }
