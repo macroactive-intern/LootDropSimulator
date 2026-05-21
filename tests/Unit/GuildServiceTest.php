@@ -187,6 +187,54 @@ test('leave guild allows a leader to leave when another leader remains', functio
         ->and($guild->users()->whereKey($secondLeader->id)->exists())->toBeTrue();
 });
 
+test('guild member observer records join leave promote and demote events', function (): void {
+    $leader = User::factory()->create();
+    $member = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($leader, [
+        'name' => 'Observed Member Guild',
+        'is_open' => true,
+    ]);
+
+    $service->joinGuild($guild, $member);
+    $service->changeRole($guild, $leader, $member, 'officer');
+    $service->changeRole($guild, $leader, $member, 'member');
+    $service->leaveGuild($guild, $member);
+
+    $joinEvent = GuildEvent::query()
+        ->where('guild_id', $guild->id)
+        ->where('event_type', 'join')
+        ->where('target_id', $member->id)
+        ->firstOrFail();
+    $promoteEvent = GuildEvent::query()
+        ->where('guild_id', $guild->id)
+        ->where('event_type', 'promote')
+        ->where('target_id', $member->id)
+        ->firstOrFail();
+    $demoteEvent = GuildEvent::query()
+        ->where('guild_id', $guild->id)
+        ->where('event_type', 'demote')
+        ->where('target_id', $member->id)
+        ->firstOrFail();
+    $leaveEvent = GuildEvent::query()
+        ->where('guild_id', $guild->id)
+        ->where('event_type', 'leave')
+        ->where('target_id', $member->id)
+        ->firstOrFail();
+
+    expect($joinEvent->metadata['role'])->toBe('member')
+        ->and($promoteEvent->metadata)->toBe([
+            'from_role' => 'member',
+            'to_role' => 'officer',
+        ])
+        ->and($demoteEvent->metadata)->toBe([
+            'from_role' => 'officer',
+            'to_role' => 'member',
+        ])
+        ->and($leaveEvent->metadata['role'])->toBe('member')
+        ->and($leaveEvent->metadata['contributed_gold'])->toBe(0);
+});
+
 test('change role allows leaders to promote and demote valid transitions', function (): void {
     $leader = User::factory()->create();
     $member = User::factory()->create();
@@ -443,7 +491,10 @@ test('withdraw treasury subtracts balance and records audit metadata', function 
 
     $service->withdrawTreasury($guild, $leader, 125, 'Buy raid supplies');
 
-    $event = GuildEvent::query()->where('guild_id', $guild->id)->firstOrFail();
+    $event = GuildEvent::query()
+        ->where('guild_id', $guild->id)
+        ->where('event_type', 'withdraw')
+        ->firstOrFail();
 
     expect($guild->refresh()->treasury_balance)->toBe(175)
         ->and($event->actor_id)->toBe($leader->id)
@@ -471,7 +522,10 @@ test('withdraw treasury rejects non leaders', function (): void {
         ->toThrow(ValidationException::class, 'Only guild leaders can withdraw from the treasury.');
 
     expect($guild->refresh()->treasury_balance)->toBe(100)
-        ->and(GuildEvent::query()->where('guild_id', $guild->id)->exists())->toBeFalse();
+        ->and(GuildEvent::query()
+            ->where('guild_id', $guild->id)
+            ->where('event_type', 'withdraw')
+            ->exists())->toBeFalse();
 });
 
 test('withdraw treasury prevents overdrafts', function (): void {
@@ -487,7 +541,10 @@ test('withdraw treasury prevents overdrafts', function (): void {
         ->toThrow(ValidationException::class, 'Guild treasury has insufficient funds.');
 
     expect($guild->refresh()->treasury_balance)->toBe(50)
-        ->and(GuildEvent::query()->where('guild_id', $guild->id)->exists())->toBeFalse();
+        ->and(GuildEvent::query()
+            ->where('guild_id', $guild->id)
+            ->where('event_type', 'withdraw')
+            ->exists())->toBeFalse();
 });
 
 test('create invite stores inviter token and forty eight hour expiry', function (): void {
@@ -552,18 +609,19 @@ test('accept invite adds the user as a member and marks the invite accepted', fu
     $member = $guild->users()->whereKey($user->id)->firstOrFail();
     $event = GuildEvent::query()
         ->where('guild_id', $guild->id)
-        ->where('event_type', 'invite_accepted')
+        ->where('event_type', 'join')
+        ->where('target_id', $user->id)
         ->firstOrFail();
 
     expect($member->pivot->role)->toBe('member')
         ->and($member->pivot->joined_at)->not->toBeNull()
         ->and($member->pivot->contributed_gold)->toBe(0)
         ->and($invite->refresh()->accepted_at->equalTo($now))->toBeTrue()
-        ->and($event->actor_id)->toBe($user->id)
-        ->and($event->target_id)->toBe($leader->id)
+        ->and($event->actor_id)->toBeNull()
+        ->and($event->target_id)->toBe($user->id)
         ->and($event->metadata)->toBe([
-            'invite_id' => $invite->id,
-            'email' => 'accepted@example.com',
+            'role' => 'member',
+            'joined_at' => $now->toISOString(),
         ]);
 });
 

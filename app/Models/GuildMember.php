@@ -9,7 +9,13 @@ class GuildMember extends Pivot
 {
     public $timestamps = false;
 
+    public $incrementing = false;
+
     protected $table = 'guild_user';
+
+    protected $foreignKey = 'guild_id';
+
+    protected $relatedKey = 'user_id';
 
     protected $fillable = [
         'guild_id',

@@ -43,15 +43,22 @@ test('guild models expose their relationships', function (): void {
         'metadata' => ['email' => $invite->email],
     ]);
 
+    $guildEvent = $guild->events()
+        ->whereKey($event->id)
+        ->first();
+    $targetedEvent = $target->guildEventsTargeted()
+        ->whereKey($event->id)
+        ->first();
+
     expect($guild->creator->is($creator))->toBeTrue()
         ->and($guild->invites()->first()?->is($invite))->toBeTrue()
-        ->and($guild->events()->first()?->is($event))->toBeTrue()
+        ->and($guildEvent?->is($event))->toBeTrue()
         ->and($guild->users()->first()?->is($target))->toBeTrue()
         ->and($guild->members()->first()?->is($target))->toBeTrue()
         ->and($creator->createdGuilds()->first()?->is($guild))->toBeTrue()
         ->and($creator->sentGuildInvites()->first()?->is($invite))->toBeTrue()
         ->and($creator->guildEventsActed()->first()?->is($event))->toBeTrue()
-        ->and($target->guildEventsTargeted()->first()?->is($event))->toBeTrue()
+        ->and($targetedEvent?->is($event))->toBeTrue()
         ->and($target->guilds()->first()?->is($guild))->toBeTrue()
         ->and($target->guilds()->first()?->pivot)->toBeInstanceOf(GuildMember::class)
         ->and($target->guilds()->first()?->pivot->role)->toBe('officer')

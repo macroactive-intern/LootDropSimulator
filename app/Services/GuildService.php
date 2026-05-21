@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Guild;
 use App\Models\GuildEvent;
 use App\Models\GuildInvite;
+use App\Models\GuildMember;
 use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\DB;
@@ -95,9 +96,10 @@ class GuildService
                 ]);
             }
 
-            DB::table('guild_user')
+            GuildMember::query()
                 ->where('guild_id', $guild->id)
                 ->where('user_id', $user->id)
+                ->firstOrFail()
                 ->delete();
         });
     }
@@ -147,9 +149,10 @@ class GuildService
                 ]);
             }
 
-            DB::table('guild_user')
+            GuildMember::query()
                 ->where('guild_id', $guild->id)
                 ->where('user_id', $target->id)
+                ->firstOrFail()
                 ->delete();
         });
     }
@@ -205,10 +208,12 @@ class GuildService
                 ]);
             }
 
-            DB::table('guild_user')
+            $targetMember = GuildMember::query()
                 ->where('guild_id', $guild->id)
                 ->where('user_id', $target->id)
-                ->update(['role' => $role]);
+                ->firstOrFail();
+
+            $targetMember->forceFill(['role' => $role])->save();
         });
     }
 
@@ -360,7 +365,7 @@ class GuildService
                 ]);
             }
 
-            DB::table('guild_user')->insert([
+            GuildMember::query()->create([
                 'guild_id' => $lockedInvite->guild_id,
                 'user_id' => $user->id,
                 'role' => 'member',
@@ -371,17 +376,6 @@ class GuildService
             $lockedInvite->forceFill([
                 'accepted_at' => now(),
             ])->save();
-
-            GuildEvent::query()->create([
-                'guild_id' => $lockedInvite->guild_id,
-                'actor_id' => $user->id,
-                'target_id' => $lockedInvite->invited_by,
-                'event_type' => 'invite_accepted',
-                'metadata' => [
-                    'invite_id' => $lockedInvite->id,
-                    'email' => $lockedInvite->email,
-                ],
-            ]);
         });
     }
 
