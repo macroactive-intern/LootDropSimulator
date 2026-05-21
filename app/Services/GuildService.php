@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Guild;
+use App\Models\GuildEvent;
 use App\Models\GuildInvite;
 use App\Models\User;
 use Illuminate\Contracts\Events\Dispatcher;
@@ -243,7 +244,49 @@ class GuildService
 
     public function withdrawTreasury(Guild $guild, User $actor, int $amount, string $reason): void
     {
-        //
+        DB::transaction(function () use ($guild, $actor, $amount, $reason): void {
+            $lockedGuild = Guild::query()
+                ->whereKey($guild->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $membership = DB::table('guild_user')
+                ->where('guild_id', $guild->id)
+                ->where('user_id', $actor->id)
+                ->lockForUpdate()
+                ->first();
+
+            if ($membership?->role !== 'leader') {
+                throw ValidationException::withMessages([
+                    'guild' => 'Only guild leaders can withdraw from the treasury.',
+                ]);
+            }
+
+            if ($lockedGuild->treasury_balance < $amount) {
+                throw ValidationException::withMessages([
+                    'amount' => 'Guild treasury has insufficient funds.',
+                ]);
+            }
+
+            $balanceBefore = $lockedGuild->treasury_balance;
+            $balanceAfter = $balanceBefore - $amount;
+
+            Guild::query()
+                ->whereKey($guild->id)
+                ->update(['treasury_balance' => $balanceAfter]);
+
+            GuildEvent::query()->create([
+                'guild_id' => $guild->id,
+                'actor_id' => $actor->id,
+                'event_type' => 'withdraw',
+                'metadata' => [
+                    'amount' => $amount,
+                    'reason' => $reason,
+                    'balance_before' => $balanceBefore,
+                    'balance_after' => $balanceAfter,
+                ],
+            ]);
+        });
     }
 
     /**

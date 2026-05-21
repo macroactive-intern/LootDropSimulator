@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Guild;
+use App\Models\GuildEvent;
 use App\Models\User;
 use App\Services\GuildService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -428,4 +429,62 @@ test('deposit treasury rejects users outside the guild', function (): void {
         ->toThrow(ValidationException::class, 'User is not a member of this guild.');
 
     expect($guild->refresh()->treasury_balance)->toBe(0);
+});
+
+test('withdraw treasury subtracts balance and records audit metadata', function (): void {
+    $leader = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($leader, [
+        'name' => 'Withdraw Guild',
+        'is_open' => true,
+    ]);
+    $service->depositTreasury($guild, $leader, 300);
+
+    $service->withdrawTreasury($guild, $leader, 125, 'Buy raid supplies');
+
+    $event = GuildEvent::query()->where('guild_id', $guild->id)->firstOrFail();
+
+    expect($guild->refresh()->treasury_balance)->toBe(175)
+        ->and($event->actor_id)->toBe($leader->id)
+        ->and($event->event_type)->toBe('withdraw')
+        ->and($event->metadata)->toBe([
+            'amount' => 125,
+            'reason' => 'Buy raid supplies',
+            'balance_before' => 300,
+            'balance_after' => 175,
+        ]);
+});
+
+test('withdraw treasury rejects non leaders', function (): void {
+    $leader = User::factory()->create();
+    $member = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($leader, [
+        'name' => 'Member Withdraw Guild',
+        'is_open' => true,
+    ]);
+    $service->joinGuild($guild, $member);
+    $service->depositTreasury($guild, $leader, 100);
+
+    expect(fn () => $service->withdrawTreasury($guild, $member, 25, 'Unauthorized snacks'))
+        ->toThrow(ValidationException::class, 'Only guild leaders can withdraw from the treasury.');
+
+    expect($guild->refresh()->treasury_balance)->toBe(100)
+        ->and(GuildEvent::query()->where('guild_id', $guild->id)->exists())->toBeFalse();
+});
+
+test('withdraw treasury prevents overdrafts', function (): void {
+    $leader = User::factory()->create();
+    $service = app(GuildService::class);
+    $guild = $service->createGuild($leader, [
+        'name' => 'Overdraft Guild',
+        'is_open' => true,
+    ]);
+    $service->depositTreasury($guild, $leader, 50);
+
+    expect(fn () => $service->withdrawTreasury($guild, $leader, 75, 'Too expensive'))
+        ->toThrow(ValidationException::class, 'Guild treasury has insufficient funds.');
+
+    expect($guild->refresh()->treasury_balance)->toBe(50)
+        ->and(GuildEvent::query()->where('guild_id', $guild->id)->exists())->toBeFalse();
 });
