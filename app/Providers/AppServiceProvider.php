@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Models\GuildMember;
+use App\Models\Trade;
 use App\Observers\GuildMemberObserver;
+use App\Observers\TradeObserver;
 use App\Support\GuildMemberAuditContext;
 use Illuminate\Support\ServiceProvider;
 
@@ -23,5 +25,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         GuildMember::observe(GuildMemberObserver::class);
+        Trade::observe(TradeObserver::class);
     }
 }

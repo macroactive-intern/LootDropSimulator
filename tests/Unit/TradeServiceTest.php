@@ -6,9 +6,14 @@ use App\Models\Trade;
 use App\Models\User;
 use App\Services\TradeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Validation\ValidationException;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function (): void {
+    Bus::fake();
+});
 
 test('accept transfers full stacks and completes the trade', function (): void {
     [$initiator, $recipient, $guild] = tradeParticipants();

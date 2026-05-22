@@ -6,8 +6,13 @@ use App\Models\User;
 use App\Services\TradeService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function (): void {
+    Bus::fake();
+});
 
 test('expire trade job stores a trade id when constructed with a trade model', function (): void {
     $trade = expirableTrade();
