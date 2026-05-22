@@ -13,6 +13,8 @@ use Illuminate\Validation\ValidationException;
 
 class TradeService
 {
+    private const MAX_PENDING_TRADES_PER_USER = 10;
+
     public function __construct(
         private readonly EscrowService $escrowService,
     ) {
@@ -24,6 +26,8 @@ class TradeService
     public function propose(User $initiator, array $validated): Trade
     {
         return DB::transaction(function () use ($initiator, $validated): Trade {
+            $this->validatePendingTradeLimit($initiator, (int) $validated['recipient_id']);
+
             $trade = Trade::query()->create([
                 'initiator_id' => $initiator->id,
                 'recipient_id' => $validated['recipient_id'],
@@ -42,6 +46,26 @@ class TradeService
                 'escrowItems.inventoryItem.item',
             ]);
         });
+    }
+
+    private function validatePendingTradeLimit(User $initiator, int $recipientId): void
+    {
+        foreach ([(int) $initiator->id, $recipientId] as $userId) {
+            $pendingCount = Trade::query()
+                ->where('status', Trade::STATUS_PENDING)
+                ->where(function ($query) use ($userId): void {
+                    $query->where('initiator_id', $userId)
+                        ->orWhere('recipient_id', $userId);
+                })
+                ->lockForUpdate()
+                ->count();
+
+            if ($pendingCount >= self::MAX_PENDING_TRADES_PER_USER) {
+                throw ValidationException::withMessages([
+                    'pending_trades' => 'A user cannot have more than '.self::MAX_PENDING_TRADES_PER_USER.' pending trades.',
+                ]);
+            }
+        }
     }
 
     public function accept(Trade $trade, User $user): Trade

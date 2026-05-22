@@ -123,6 +123,37 @@ test('repeated accept attempts only complete the trade once', function (): void 
         ->and(InventoryItem::query()->where('item_id', $requestedInventoryItem->item_id)->sum('quantity'))->toBe(1);
 });
 
+test('propose enforces pending trade limit inside the transaction', function (): void {
+    [$initiator, $recipient, $guild] = tradeParticipants();
+    $offeredInventoryItem = inventoryItemFor($initiator, 'Limit Sword', 100, 1);
+    $requestedInventoryItem = inventoryItemFor($recipient, 'Limit Shield', 100, 1);
+    $service = app(TradeService::class);
+
+    for ($index = 0; $index < 10; $index++) {
+        Trade::query()->create([
+            'initiator_id' => $initiator->id,
+            'recipient_id' => User::factory()->create()->id,
+            'guild_id' => $guild->id,
+            'status' => Trade::STATUS_PENDING,
+            'expires_at' => now()->addHour(),
+        ]);
+    }
+
+    expect(fn () => $service->propose($initiator, [
+        'recipient_id' => $recipient->id,
+        'guild_id' => $guild->id,
+        'offered_items' => [
+            ['inventory_item_id' => $offeredInventoryItem->id, 'quantity' => 1],
+        ],
+        'requested_items' => [
+            ['inventory_item_id' => $requestedInventoryItem->id, 'quantity' => 1],
+        ],
+    ]))->toThrow(ValidationException::class, 'A user cannot have more than 10 pending trades.');
+
+    expect($offeredInventoryItem->refresh()->is_in_escrow)->toBeFalse()
+        ->and(Trade::query()->where('initiator_id', $initiator->id)->count())->toBe(10);
+});
+
 test('trade status changed timestamp is recorded on create and status changes', function (): void {
     [$initiator, $recipient, $guild] = tradeParticipants();
     $offeredInventoryItem = inventoryItemFor($initiator, 'Timestamp Sword', 100, 1);
