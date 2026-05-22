@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\GuildMemberController;
 use App\Http\Controllers\Api\GuildTreasuryController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\LootController;
+use App\Http\Controllers\Api\TradeController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('throttle:60,1')->group(function (): void {
@@ -21,6 +22,13 @@ Route::middleware('throttle:60,1')->group(function (): void {
             ->middleware('admin');
 
         Route::get('/inventory', [InventoryController::class, 'index']);
+
+        Route::get('/trades', [TradeController::class, 'index']);
+        Route::post('/trades', [TradeController::class, 'store']);
+        Route::get('/trades/{trade}', [TradeController::class, 'show']);
+        Route::post('/trades/{trade}/accept', [TradeController::class, 'accept']);
+        Route::post('/trades/{trade}/reject', [TradeController::class, 'reject']);
+        Route::post('/trades/{trade}/cancel', [TradeController::class, 'cancel']);
 
         Route::get('/guilds', [GuildController::class, 'index']);
         Route::post('/guilds', [GuildController::class, 'store']);

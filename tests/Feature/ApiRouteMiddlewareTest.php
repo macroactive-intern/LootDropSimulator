@@ -17,7 +17,7 @@ test('loot api routes are rate limited', function (string $method, string $uri):
     ['GET', '/api/inventory'],
 ]);
 
-test('guild api routes are registered with expected authentication', function (string $method, string $uri, bool $requiresAuth): void {
+test('guild and trade api routes are registered with expected authentication', function (string $method, string $uri, bool $requiresAuth): void {
     $route = Route::getRoutes()->match(
         request()->create($uri, $method)
     );
@@ -44,4 +44,11 @@ test('guild api routes are registered with expected authentication', function (s
     ['POST', '/api/guilds/1/invites', true],
     ['POST', '/api/guilds/invites/token-value/accept', false],
     ['GET', '/api/guilds/1/events', true],
+    ['GET', '/api/inventory', true],
+    ['GET', '/api/trades', true],
+    ['POST', '/api/trades', true],
+    ['GET', '/api/trades/1', true],
+    ['POST', '/api/trades/1/accept', true],
+    ['POST', '/api/trades/1/reject', true],
+    ['POST', '/api/trades/1/cancel', true],
 ]);
