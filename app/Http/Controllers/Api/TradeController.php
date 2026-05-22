@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AcceptTradeRequest;
 use App\Http\Requests\CancelTradeRequest;
+use App\Http\Requests\IndexTradeRequest;
 use App\Http\Requests\ProposeTradeRequest;
 use App\Http\Requests\RejectTradeRequest;
 use App\Http\Resources\TradeResource;
@@ -13,22 +14,11 @@ use App\Services\TradeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Validation\Rule;
 
 class TradeController extends Controller
 {
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(IndexTradeRequest $request): AnonymousResourceCollection
     {
-        $data = $request->validate([
-            'status' => ['sometimes', 'string', Rule::in([
-                Trade::STATUS_PENDING,
-                Trade::STATUS_REJECTED,
-                Trade::STATUS_COMPLETED,
-                Trade::STATUS_EXPIRED,
-                Trade::STATUS_CANCELLED,
-            ])],
-        ]);
-
         $trades = Trade::query()
             ->with($this->tradeRelations())
             ->where(function ($query) use ($request): void {
@@ -36,7 +26,7 @@ class TradeController extends Controller
                     ->orWhere('recipient_id', $request->user()->id);
             })
             ->when(
-                $data['status'] ?? null,
+                $request->statusFilter(),
                 fn ($query, string $status) => $query->where('status', $status)
             )
             ->latest()
