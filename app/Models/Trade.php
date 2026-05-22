@@ -23,14 +23,29 @@ class Trade extends Model
         'recipient_id',
         'guild_id',
         'status',
+        'status_changed_at',
         'expires_at',
     ];
 
     protected function casts(): array
     {
         return [
+            'status_changed_at' => 'datetime',
             'expires_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (Trade $trade): void {
+            if (! $trade->exists && $trade->status_changed_at === null) {
+                $trade->status_changed_at = now();
+            }
+
+            if ($trade->exists && $trade->isDirty('status') && ! $trade->isDirty('status_changed_at')) {
+                $trade->status_changed_at = now();
+            }
+        });
     }
 
     public function initiator(): BelongsTo

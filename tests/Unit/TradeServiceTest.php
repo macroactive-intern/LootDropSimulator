@@ -123,6 +123,29 @@ test('repeated accept attempts only complete the trade once', function (): void 
         ->and(InventoryItem::query()->where('item_id', $requestedInventoryItem->item_id)->sum('quantity'))->toBe(1);
 });
 
+test('trade status changed timestamp is recorded on create and status changes', function (): void {
+    [$initiator, $recipient, $guild] = tradeParticipants();
+    $offeredInventoryItem = inventoryItemFor($initiator, 'Timestamp Sword', 100, 1);
+    $requestedInventoryItem = inventoryItemFor($recipient, 'Timestamp Shield', 100, 1);
+    $service = app(TradeService::class);
+    $createdAt = now()->startOfSecond();
+    $changedAt = $createdAt->copy()->addMinute();
+
+    $this->travelTo($createdAt);
+
+    $trade = proposedTrade($service, $initiator, $recipient, $guild, $offeredInventoryItem, $requestedInventoryItem);
+
+    expect($trade->status_changed_at?->format('Y-m-d H:i:s'))->toBe($createdAt->format('Y-m-d H:i:s'));
+
+    $this->travelTo($changedAt);
+
+    $acceptedTrade = $service->accept($trade, $recipient);
+
+    expect($acceptedTrade->status_changed_at?->format('Y-m-d H:i:s'))->toBe($changedAt->format('Y-m-d H:i:s'));
+
+    $this->travelBack();
+});
+
 test('recipient can reject a pending trade and release escrow', function (): void {
     [$initiator, $recipient, $guild] = tradeParticipants();
     $offeredInventoryItem = inventoryItemFor($initiator, 'Reject Sword', 100, 1);
