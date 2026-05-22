@@ -208,6 +208,7 @@ class ProposeTradeRequest extends FormRequest
         $higherTotal = max($offeredTotal, $requestedTotal);
         $lowerTotal = min($offeredTotal, $requestedTotal);
 
+        // Zero-value trades intentionally skip ratio enforcement because no fair ratio can be calculated.
         if ($higherTotal > 0 && ($lowerTotal / $higherTotal) < 0.75) {
             $validator->errors()->add(
                 'trade_value',
