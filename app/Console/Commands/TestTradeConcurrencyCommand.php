@@ -258,6 +258,7 @@ class TestTradeConcurrencyCommand extends Command
             ->values();
 
         $newRows = InventoryItem::query()
+            ->whereIn('item_id', $snapshots->pluck('item_id')->unique()->all())
             ->whereNotIn('id', $inventoryIdsBefore)
             ->get(['item_id', 'user_id', 'quantity']);
 
