@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\InventoryItem;
 use App\Models\Trade;
+use App\Services\TradeService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Collection;
@@ -13,8 +14,6 @@ use Illuminate\Validation\Validator;
 
 class ProposeTradeRequest extends FormRequest
 {
-    private const MAX_PENDING_TRADES_PER_USER = 10;
-
     /**
      * @var Collection<int, InventoryItem>|null
      */
@@ -140,10 +139,10 @@ class ProposeTradeRequest extends FormRequest
                 })
                 ->count();
 
-            if ($pendingTradeCount >= self::MAX_PENDING_TRADES_PER_USER) {
+            if ($pendingTradeCount >= TradeService::MAX_PENDING_TRADES_PER_USER) {
                 $validator->errors()->add(
                     'pending_trades',
-                    'A user cannot have more than '.self::MAX_PENDING_TRADES_PER_USER.' pending trades.'
+                    'A user cannot have more than '.TradeService::MAX_PENDING_TRADES_PER_USER.' pending trades.'
                 );
 
                 return;

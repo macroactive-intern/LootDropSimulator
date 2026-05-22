@@ -13,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 
 class TradeService
 {
-    private const MAX_PENDING_TRADES_PER_USER = 10;
+    public const MAX_PENDING_TRADES_PER_USER = 10;
 
     public function __construct(
         private readonly EscrowService $escrowService,
