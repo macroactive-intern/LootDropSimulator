@@ -160,7 +160,7 @@ class TradeService
         });
     }
 
-    public function expireIfPending(Trade $trade): ?Trade
+    public function expireIfPending(Trade $trade): Trade
     {
         return DB::transaction(function () use ($trade): Trade {
             $lockedTrade = Trade::query()
