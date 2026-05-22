@@ -80,17 +80,17 @@ class Trade extends Model
 
     public function involvesUser(User $user): bool
     {
-        return $this->initiator_id === $user->id
-            || $this->recipient_id === $user->id;
+        return (int) $this->initiator_id === (int) $user->id
+            || (int) $this->recipient_id === (int) $user->id;
     }
 
     public function canBeAcceptedBy(User $user): bool
     {
-        return $this->isPending() && $this->recipient_id === $user->id;
+        return $this->isPending() && (int) $this->recipient_id === (int) $user->id;
     }
 
     public function canBeCancelledBy(User $user): bool
     {
-        return $this->isPending() && $this->initiator_id === $user->id;
+        return $this->isPending() && (int) $this->initiator_id === (int) $user->id;
     }
 }
