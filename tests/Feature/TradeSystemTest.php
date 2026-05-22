@@ -42,6 +42,15 @@ test('trade proposal succeeds if both users share the supplied guild', function 
         ->assertJsonPath('data.status', Trade::STATUS_PENDING);
 });
 
+test('trade index rejects accepted status filter', function (): void {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->getJson('/api/trades?status=accepted')
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('status');
+});
+
 test('offered items move to escrow on proposal', function (): void {
     [$initiator, $recipient, $guild] = l8TradeParticipants();
     $offeredInventoryItem = l8InventoryItemFor($initiator, 'Escrow Sword', 100);

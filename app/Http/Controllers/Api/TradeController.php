@@ -22,7 +22,6 @@ class TradeController extends Controller
         $data = $request->validate([
             'status' => ['sometimes', 'string', Rule::in([
                 Trade::STATUS_PENDING,
-                Trade::STATUS_ACCEPTED,
                 Trade::STATUS_REJECTED,
                 Trade::STATUS_COMPLETED,
                 Trade::STATUS_EXPIRED,
