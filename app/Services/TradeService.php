@@ -97,7 +97,7 @@ class TradeService
                 );
             }
 
-            $lockedTrade->escrowItems()->delete();
+            $this->escrowService->releaseEscrow($lockedTrade);
             $lockedTrade->forceFill(['status' => Trade::STATUS_COMPLETED])->save();
 
             return $this->loadTradeRelations($lockedTrade);
