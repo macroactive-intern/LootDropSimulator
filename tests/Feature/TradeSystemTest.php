@@ -39,7 +39,8 @@ test('trade proposal succeeds if both users share the supplied guild', function 
         ->assertJsonPath('data.initiator_id', $initiator->id)
         ->assertJsonPath('data.recipient_id', $recipient->id)
         ->assertJsonPath('data.guild_id', $guild->id)
-        ->assertJsonPath('data.status', Trade::STATUS_PENDING);
+        ->assertJsonPath('data.status', Trade::STATUS_PENDING)
+        ->assertJsonPath('data.status_changed_at', fn (?string $value): bool => $value !== null);
 });
 
 test('trade proposal fails when a user has too many pending trades', function (): void {

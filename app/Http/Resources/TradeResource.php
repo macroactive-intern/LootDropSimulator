@@ -27,6 +27,7 @@ class TradeResource extends JsonResource
             'recipient_id' => $this->recipient_id,
             'guild_id' => $this->guild_id,
             'status' => $this->status,
+            'status_changed_at' => $this->status_changed_at?->toISOString(),
             'expires_at' => $this->expires_at?->toISOString(),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
