@@ -14,6 +14,7 @@ test('loot api routes are rate limited', function (string $method, string $uri):
     ['GET', '/api/loot-drops/stats'],
     ['GET', '/api/loot-drops/global-stats'],
     ['POST', '/api/admin/loot-grant'],
+    ['GET', '/api/inventory'],
 ]);
 
 test('guild api routes are registered with expected authentication', function (string $method, string $uri, bool $requiresAuth): void {

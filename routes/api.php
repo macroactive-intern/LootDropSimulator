@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\GuildController;
 use App\Http\Controllers\Api\GuildInviteController;
 use App\Http\Controllers\Api\GuildMemberController;
 use App\Http\Controllers\Api\GuildTreasuryController;
+use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\LootController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,6 +19,8 @@ Route::middleware('throttle:60,1')->group(function (): void {
 
         Route::post('/admin/loot-grant', [LootController::class, 'grant'])
             ->middleware('admin');
+
+        Route::get('/inventory', [InventoryController::class, 'index']);
 
         Route::get('/guilds', [GuildController::class, 'index']);
         Route::post('/guilds', [GuildController::class, 'store']);
