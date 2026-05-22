@@ -42,6 +42,28 @@ test('trade proposal succeeds if both users share the supplied guild', function 
         ->assertJsonPath('data.status', Trade::STATUS_PENDING);
 });
 
+test('trade proposal fails when a user has too many pending trades', function (): void {
+    [$initiator, $recipient, $guild] = l8TradeParticipants();
+    $offeredInventoryItem = l8InventoryItemFor($initiator, 'Pending Limit Sword', 100);
+    $requestedInventoryItem = l8InventoryItemFor($recipient, 'Pending Limit Shield', 100);
+
+    foreach (range(1, 10) as $index) {
+        Trade::query()->create([
+            'initiator_id' => $initiator->id,
+            'recipient_id' => User::factory()->create()->id,
+            'guild_id' => $guild->id,
+            'status' => Trade::STATUS_PENDING,
+            'expires_at' => now()->addHours(24),
+        ]);
+    }
+
+    $this->actingAs($initiator)
+        ->postJson('/api/trades', l8TradePayload($recipient, $guild, $offeredInventoryItem, $requestedInventoryItem))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('pending_trades')
+        ->assertSee('A user cannot have more than 10 pending trades.');
+});
+
 test('trade index rejects accepted status filter', function (): void {
     $user = User::factory()->create();
 

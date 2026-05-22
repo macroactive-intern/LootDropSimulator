@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\InventoryItem;
+use App\Models\Trade;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Collection;
@@ -12,6 +13,8 @@ use Illuminate\Validation\Validator;
 
 class ProposeTradeRequest extends FormRequest
 {
+    private const MAX_PENDING_TRADES_PER_USER = 10;
+
     /**
      * @var Collection<int, InventoryItem>|null
      */
@@ -62,6 +65,7 @@ class ProposeTradeRequest extends FormRequest
                     return;
                 }
 
+                $this->validatePendingTradeLimit($validator);
                 $this->validateSharedGuild($validator);
                 $this->validateInventorySide($validator, 'offered_items', (int) $this->user()->id);
                 $this->validateInventorySide($validator, 'requested_items', (int) $this->input('recipient_id'));
@@ -117,6 +121,33 @@ class ProposeTradeRequest extends FormRequest
                 'guild_id',
                 'Both users must be members of the supplied guild.'
             );
+        }
+    }
+
+    private function validatePendingTradeLimit(Validator $validator): void
+    {
+        $userIds = [
+            (int) $this->user()->id,
+            (int) $this->input('recipient_id'),
+        ];
+
+        foreach ($userIds as $userId) {
+            $pendingTradeCount = Trade::query()
+                ->where('status', Trade::STATUS_PENDING)
+                ->where(function ($query) use ($userId): void {
+                    $query->where('initiator_id', $userId)
+                        ->orWhere('recipient_id', $userId);
+                })
+                ->count();
+
+            if ($pendingTradeCount >= self::MAX_PENDING_TRADES_PER_USER) {
+                $validator->errors()->add(
+                    'pending_trades',
+                    'A user cannot have more than '.self::MAX_PENDING_TRADES_PER_USER.' pending trades.'
+                );
+
+                return;
+            }
         }
     }
 
