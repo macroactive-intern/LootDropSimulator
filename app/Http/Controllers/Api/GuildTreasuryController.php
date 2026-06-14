@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -14,8 +16,7 @@ class GuildTreasuryController extends Controller
 {
     public function __construct(
         private readonly GuildService $guildService,
-    ) {
-    }
+    ) {}
 
     public function deposit(TreasuryDepositRequest $request, Guild $guild): GuildResource
     {

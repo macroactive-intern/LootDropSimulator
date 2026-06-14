@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Events;
 
 use App\Models\DroppedItem;
@@ -16,7 +18,5 @@ class LootDropped
      */
     public function __construct(
         public DroppedItem $droppedItem,
-    )
-    {
-    }
+    ) {}
 }

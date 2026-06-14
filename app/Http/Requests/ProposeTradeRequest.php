@@ -1,10 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests;
 
 use App\Models\InventoryItem;
 use App\Models\Trade;
-use App\Services\TradeService;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Collection;
@@ -139,10 +140,12 @@ class ProposeTradeRequest extends FormRequest
                 })
                 ->count();
 
-            if ($pendingTradeCount >= TradeService::MAX_PENDING_TRADES_PER_USER) {
+            $maxPending = (int) config('trade.max_pending_per_user', 10);
+
+            if ($pendingTradeCount >= $maxPending) {
                 $validator->errors()->add(
                     'pending_trades',
-                    'A user cannot have more than '.TradeService::MAX_PENDING_TRADES_PER_USER.' pending trades.'
+                    "A user cannot have more than {$maxPending} pending trades."
                 );
 
                 return;
@@ -207,11 +210,14 @@ class ProposeTradeRequest extends FormRequest
         $higherTotal = max($offeredTotal, $requestedTotal);
         $lowerTotal = min($offeredTotal, $requestedTotal);
 
+        $fairnessRatio = (float) config('trade.fairness_ratio', 0.75);
+        $imbalancePct = (int) round((1 - $fairnessRatio) * 100);
+
         // Zero-value trades intentionally skip ratio enforcement because no fair ratio can be calculated.
-        if ($higherTotal > 0 && ($lowerTotal / $higherTotal) < 0.75) {
+        if ($higherTotal > 0 && ($lowerTotal / $higherTotal) < $fairnessRatio) {
             $validator->errors()->add(
                 'trade_value',
-                "Trade value is too imbalanced. Offered total: {$offeredTotal}. Requested total: {$requestedTotal}. Values must be within 25%."
+                "Trade value is too imbalanced. Offered total: {$offeredTotal}. Requested total: {$requestedTotal}. Values must be within {$imbalancePct}%."
             );
         }
     }

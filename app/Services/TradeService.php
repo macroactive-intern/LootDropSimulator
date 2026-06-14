@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\EscrowItem;
@@ -9,16 +11,14 @@ use App\Models\TradeItem;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class TradeService
 {
-    public const MAX_PENDING_TRADES_PER_USER = 10;
-
     public function __construct(
         private readonly EscrowService $escrowService,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $validated
@@ -33,7 +33,7 @@ class TradeService
                 'recipient_id' => $validated['recipient_id'],
                 'guild_id' => $validated['guild_id'],
                 'status' => Trade::STATUS_PENDING,
-                'expires_at' => now()->addHours(24),
+                'expires_at' => now()->addHours((int) config('trade.expiry_hours', 24)),
             ]);
 
             $this->createTradeItems($trade, $validated['offered_items'], $initiator->id);
@@ -60,9 +60,11 @@ class TradeService
                 ->lockForUpdate()
                 ->count();
 
-            if ($pendingCount >= self::MAX_PENDING_TRADES_PER_USER) {
+            $maxPending = (int) config('trade.max_pending_per_user', 10);
+
+            if ($pendingCount >= $maxPending) {
                 throw ValidationException::withMessages([
-                    'pending_trades' => 'A user cannot have more than '.self::MAX_PENDING_TRADES_PER_USER.' pending trades.',
+                    'pending_trades' => "A user cannot have more than {$maxPending} pending trades.",
                 ]);
             }
         }
@@ -124,6 +126,12 @@ class TradeService
             $this->escrowService->releaseEscrow($lockedTrade);
             $lockedTrade->forceFill(['status' => Trade::STATUS_COMPLETED])->save();
 
+            Log::info('trade.accepted', [
+                'trade_id' => $lockedTrade->id,
+                'initiator_id' => $lockedTrade->initiator_id,
+                'recipient_id' => $lockedTrade->recipient_id,
+            ]);
+
             return $this->loadTradeRelations($lockedTrade);
         });
     }
@@ -151,6 +159,12 @@ class TradeService
             $this->escrowService->releaseEscrow($lockedTrade);
 
             $lockedTrade->forceFill(['status' => Trade::STATUS_REJECTED])->save();
+
+            Log::info('trade.rejected', [
+                'trade_id' => $lockedTrade->id,
+                'initiator_id' => $lockedTrade->initiator_id,
+                'recipient_id' => $lockedTrade->recipient_id,
+            ]);
 
             return $this->loadTradeRelations($lockedTrade);
         });
@@ -180,6 +194,12 @@ class TradeService
 
             $lockedTrade->forceFill(['status' => Trade::STATUS_CANCELLED])->save();
 
+            Log::info('trade.cancelled', [
+                'trade_id' => $lockedTrade->id,
+                'initiator_id' => $lockedTrade->initiator_id,
+                'recipient_id' => $lockedTrade->recipient_id,
+            ]);
+
             return $this->loadTradeRelations($lockedTrade);
         });
     }
@@ -199,6 +219,12 @@ class TradeService
             $this->escrowService->releaseEscrow($lockedTrade);
 
             $lockedTrade->forceFill(['status' => Trade::STATUS_EXPIRED])->save();
+
+            Log::info('trade.expired', [
+                'trade_id' => $lockedTrade->id,
+                'initiator_id' => $lockedTrade->initiator_id,
+                'recipient_id' => $lockedTrade->recipient_id,
+            ]);
 
             return $this->loadTradeRelations($lockedTrade);
         });

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Models\Guild;
@@ -19,8 +21,7 @@ class GuildService
 {
     public function __construct(
         private readonly GuildMemberAuditContext $guildMemberAuditContext,
-    ) {
-    }
+    ) {}
 
     /**
      * @param  array<string, mixed>  $data
@@ -112,9 +113,9 @@ class GuildService
                 ]);
             }
 
-            if ($memberships->count() >= 5) {
+            if ($memberships->count() >= (int) config('guild.max_guilds_per_user', 5)) {
                 throw ValidationException::withMessages([
-                    'guild' => 'User cannot belong to more than 5 guilds.',
+                    'guild' => 'User cannot belong to more than '.(int) config('guild.max_guilds_per_user', 5).' guilds.',
                 ]);
             }
 
@@ -400,7 +401,7 @@ class GuildService
                 'invited_by' => $inviter->id,
                 'email' => $email,
                 'token' => (string) Str::uuid(),
-                'expires_at' => now()->addHours(48),
+                'expires_at' => now()->addHours((int) config('guild.invite_expiry_hours', 48)),
             ]);
 
             GuildEvent::query()->create([
@@ -564,7 +565,7 @@ class GuildService
                 ->whereColumn('guild_user.guild_id', 'guilds.id')
                 ->where('guild_user.user_id', $user->id)
                 ->limit(1),
-            ]);
+        ]);
     }
 
     private function isUniqueConstraintViolation(QueryException $exception): bool

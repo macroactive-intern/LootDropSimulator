@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use App\Services\LootService;
@@ -24,9 +26,7 @@ class LootDropJob implements ShouldQueue
         public int $userId,
         public string $source,
         public float $legendaryMultiplier = 1.0,
-    )
-    {
-    }
+    ) {}
 
     /**
      * Execute the job.
