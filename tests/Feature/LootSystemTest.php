@@ -75,7 +75,7 @@ test('loot dropped listeners execute and update user stats', function (): void {
 
     Log::shouldHaveReceived('info')
         ->once()
-        ->with('Loot dropped', \Mockery::on(
+        ->with('Loot dropped', Mockery::on(
             fn (array $context): bool => $context['dropped_item_id'] === $droppedItem->id
                 && $context['user_id'] === $user->id
                 && $context['rarity'] === 'legendary'
@@ -177,7 +177,9 @@ test('global stats endpoint works', function (): void {
     $this->getJson('/api/loot-drops/global-stats')
         ->assertOk()
         ->assertJson([
-            'total_drops' => 3,
-            'legendary_count' => 2,
+            'data' => [
+                'total_drops' => 3,
+                'legendary_count' => 2,
+            ],
         ]);
 });

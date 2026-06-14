@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use UnexpectedValueException;
@@ -11,8 +13,7 @@ class LootTable
      */
     public function __construct(
         private readonly ?array $items = null,
-    ) {
-    }
+    ) {}
 
     /**
      * Roll against the configured loot table and return the selected item.

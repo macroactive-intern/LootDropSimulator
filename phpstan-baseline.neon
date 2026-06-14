@@ -1,0 +1,487 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: app/Casts/UnsignedBigInteger.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 1
+			path: app/Casts/UnsignedBigInteger.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Console/Commands/TestTradeConcurrencyCommand.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Console/Commands/TestTradeConcurrencyCommand.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$item_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Console/Commands/TestTradeConcurrencyCommand.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Console/Commands/TestTradeConcurrencyCommand.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$quantity\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Console/Commands/TestTradeConcurrencyCommand.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:createToken\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Console/Commands/TestTradeConcurrencyCommand.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:tokens\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Console/Commands/TestTradeConcurrencyCommand.php
+
+		-
+			message: '#^Method App\\Console\\Commands\\TestTradeConcurrencyCommand\:\:snapshotsFor\(\) should return Illuminate\\Support\\Collection\<int, array\<string, int\>\> but returns Illuminate\\Support\\Collection\<int, array\{inventory_item_id\: int, item_id\: int, from_user_id\: int\<0, max\>, to_user_id\: int\<0, max\>, quantity\: int, original_quantity\: int\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Console/Commands/TestTradeConcurrencyCommand.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{inventory_item_id\: int, item_id\: int, from_user_id\: int\<0, max\>, to_user_id\: int\<0, max\>, quantity\: int, original_quantity\: int\}, Closure\(App\\Models\\TradeItem\)\: array\{inventory_item_id\: int, item_id\: int, from_user_id\: int\<0, max\>, to_user_id\: int\<0, max\>, quantity\: int, original_quantity\: int\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Console/Commands/TestTradeConcurrencyCommand.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>email" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Console/Commands/TestTradeConcurrencyCommand.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Console/Commands/TestTradeConcurrencyCommand.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$base_value\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Requests/ProposeTradeRequest.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_unique\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Requests/ProposeTradeRequest.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\DroppedItemResource\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/DroppedItemResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\DroppedItemResource\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/DroppedItemResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\DroppedItemResource\:\:\$item_name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/DroppedItemResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\DroppedItemResource\:\:\$quantity\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/DroppedItemResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\DroppedItemResource\:\:\$rarity\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/DroppedItemResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\DroppedItemResource\:\:\$source\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/DroppedItemResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GlobalLootStatResource\:\:\$legendary_count\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/GlobalLootStatResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GlobalLootStatResource\:\:\$total_drops\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/GlobalLootStatResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GuildEventResource\:\:\$actor_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/GuildEventResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GuildEventResource\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/GuildEventResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GuildEventResource\:\:\$event_type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/GuildEventResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GuildEventResource\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/GuildEventResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GuildEventResource\:\:\$metadata\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/GuildEventResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GuildEventResource\:\:\$target_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/GuildEventResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GuildInviteResource\:\:\$accepted_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/GuildInviteResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GuildInviteResource\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/GuildInviteResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GuildInviteResource\:\:\$expires_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/GuildInviteResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GuildInviteResource\:\:\$guild_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/GuildInviteResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GuildInviteResource\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/GuildInviteResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GuildInviteResource\:\:\$invited_by\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/GuildInviteResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GuildInviteResource\:\:\$token\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/GuildInviteResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GuildMemberResource\:\:\$pivot\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/GuildMemberResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GuildResource\:\:\$description\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/GuildResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GuildResource\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/GuildResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GuildResource\:\:\$is_open\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/GuildResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GuildResource\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/GuildResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GuildResource\:\:\$treasury_balance\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/GuildResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\GuildResource\:\:\$users\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/GuildResource.php
+
+		-
+			message: '#^Call to an undefined method App\\Http\\Resources\\GuildResource\:\:relationLoaded\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Http/Resources/GuildResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\InventoryItemResource\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/InventoryItemResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\InventoryItemResource\:\:\$is_in_escrow\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/InventoryItemResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\InventoryItemResource\:\:\$is_tradable\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/InventoryItemResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\InventoryItemResource\:\:\$item\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Http/Resources/InventoryItemResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\InventoryItemResource\:\:\$item_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/InventoryItemResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\InventoryItemResource\:\:\$quantity\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/InventoryItemResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\TradeResource\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/TradeResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\TradeResource\:\:\$escrowItems\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/TradeResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\TradeResource\:\:\$expires_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/TradeResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\TradeResource\:\:\$guild_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/TradeResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\TradeResource\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/TradeResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\TradeResource\:\:\$initiator_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/TradeResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\TradeResource\:\:\$recipient_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/TradeResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\TradeResource\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/TradeResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\TradeResource\:\:\$status_changed_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/TradeResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\TradeResource\:\:\$tradeItems\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/TradeResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\TradeResource\:\:\$updated_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/TradeResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$item\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/TradeResource.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$item_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Resources/TradeResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\UserLootStatResource\:\:\$last_drop_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/UserLootStatResource.php
+
+		-
+			message: '#^Access to an undefined property App\\Http\\Resources\\UserLootStatResource\:\:\$user_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Resources/UserLootStatResource.php
+
+		-
+			message: '#^Property App\\Models\\Trade\:\:\$status_changed_at \(string\|null\) does not accept Illuminate\\Support\\Carbon\.$#'
+			identifier: assign.propertyType
+			count: 2
+			path: app/Models/Trade.php
+
+		-
+			message: '#^Cannot call method toISOString\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 2
+			path: app/Observers/GuildMemberObserver.php
+
+		-
+			message: '#^Using nullsafe method call on non\-nullable type string\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Observers/GuildMemberObserver.php
+
+		-
+			message: '#^Parameter \#1 \$delay of method Illuminate\\Foundation\\Bus\\PendingDispatch\:\:delay\(\) expects DateInterval\|DateTimeInterface\|int\|null, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Observers/TradeObserver.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Relations\\Pivot\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Policies/GuildPolicy.php
+
+		-
+			message: '#^Cannot call method isPast\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: app/Services/GuildService.php
+
+		-
+			message: '#^Cannot call method toISOString\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 2
+			path: app/Services/GuildService.php
+
+		-
+			message: '#^Method App\\Services\\GuildService\:\:getGuild\(\) should return App\\Models\\Guild but returns Illuminate\\Database\\Eloquent\\Model\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/GuildService.php
+
+		-
+			message: '#^Method App\\Services\\GuildService\:\:guildMember\(\) should return App\\Models\\User but returns Illuminate\\Database\\Eloquent\\Model&object\{pivot\: Illuminate\\Database\\Eloquent\\Relations\\Pivot\}\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Services/GuildService.php
+
+		-
+			message: '#^PHPDoc tag @param references unknown parameter\: \$data$#'
+			identifier: parameter.notFound
+			count: 1
+			path: app/Services/GuildService.php
+
+		-
+			message: '#^Parameter \#1 \$guild of method App\\Services\\GuildService\:\:getGuild\(\) expects App\\Models\\Guild, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/GuildService.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>consecutive_common_drops" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/LootService.php
+
+		-
+			message: '#^Parameter \#1 \$escrowItems of method App\\Services\\TradeService\:\:quantitiesByEscrowInventoryItem\(\) expects Illuminate\\Support\\Collection\<int, App\\Models\\EscrowItem\>, Illuminate\\Database\\Eloquent\\Collection\<int, Illuminate\\Database\\Eloquent\\Model\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/TradeService.php
+
+		-
+			message: '#^Parameter \#1 \$tradeItems of method App\\Services\\TradeService\:\:lockedInventoryItems\(\) expects Illuminate\\Support\\Collection\<int, App\\Models\\TradeItem\>, Illuminate\\Database\\Eloquent\\Collection\<int, Illuminate\\Database\\Eloquent\\Model\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/TradeService.php
+
+		-
+			message: '#^Parameter \#1 \$tradeItems of method App\\Services\\TradeService\:\:quantitiesByInventoryItem\(\) expects Illuminate\\Support\\Collection\<int, App\\Models\\TradeItem\>, Illuminate\\Database\\Eloquent\\Collection\<int, Illuminate\\Database\\Eloquent\\Model\> given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Services/TradeService.php
+
+		-
+			message: '#^Parameter \#2 \$escrowItems of method App\\Services\\TradeService\:\:lockedInventoryItems\(\) expects Illuminate\\Support\\Collection\<int, App\\Models\\EscrowItem\>, Illuminate\\Database\\Eloquent\\Collection\<int, Illuminate\\Database\\Eloquent\\Model\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Services/TradeService.php

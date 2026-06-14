@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Events\LootDropped;
@@ -13,8 +15,7 @@ class LootService
     public function __construct(
         private readonly LootTable $lootTable,
         private readonly Dispatcher $events,
-    ) {
-    }
+    ) {}
 
     public function roll(
         int $userId,
@@ -59,12 +60,12 @@ class LootService
 
     private function shouldForceRareOrHigher(?UserLootStat $stats): bool
     {
-        return ($stats?->consecutive_common_drops ?? 0) >= 10;
+        return ($stats?->consecutive_common_drops ?? 0) >= (int) config('loot.pity_threshold', 10);
     }
 
     /**
-     * After 10 consecutive commons, the next roll uses the same weighted
-     * algorithm but excludes common items from the temporary loot pool.
+     * After the configured pity threshold of consecutive commons, the next roll uses the same
+     * weighted algorithm but excludes common items from the temporary loot pool.
      *
      * @return array<string, mixed>
      */

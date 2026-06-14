@@ -1,10 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api;
 
 use App\Events\LootDropped;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\DroppedItemResource;
+use App\Http\Resources\GlobalLootStatResource;
+use App\Http\Resources\UserLootStatResource;
 use App\Jobs\LootDropJob;
 use App\Models\DroppedItem;
 use App\Models\UserLootStat;
@@ -62,22 +66,16 @@ class LootController extends Controller
         return DroppedItemResource::collection($droppedItems);
     }
 
-    public function stats(Request $request): JsonResponse
+    public function stats(Request $request): UserLootStatResource
     {
         $stats = UserLootStat::query()
             ->where('user_id', $request->user()->id)
-            ->first();
+            ->firstOrNew(['user_id' => $request->user()->id]);
 
-        return response()->json([
-            'user_id' => $request->user()->id,
-            'total_drops' => $stats?->total_drops ?? 0,
-            'legendary_count' => $stats?->legendary_count ?? 0,
-            'consecutive_common_drops' => $stats?->consecutive_common_drops ?? 0,
-            'last_drop_at' => $stats?->last_drop_at?->toISOString(),
-        ]);
+        return new UserLootStatResource($stats);
     }
 
-    public function globalStats(): JsonResponse
+    public function globalStats(): GlobalLootStatResource
     {
         $stats = DroppedItem::query()
             ->selectRaw(
@@ -86,10 +84,7 @@ class LootController extends Controller
             )
             ->first();
 
-        return response()->json([
-            'total_drops' => (int) $stats->total_drops,
-            'legendary_count' => (int) $stats->legendary_count,
-        ]);
+        return new GlobalLootStatResource($stats);
     }
 
     public function grant(Request $request): JsonResponse

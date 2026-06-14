@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Observers;
 
 use App\Models\GuildEvent;
@@ -69,5 +71,4 @@ class GuildMemberObserver
             'metadata' => $metadata,
         ]);
     }
-
 }

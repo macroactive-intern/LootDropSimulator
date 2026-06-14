@@ -3,6 +3,8 @@
 return [
     'guild_leader_legendary_multiplier' => 2.0,
 
+    'pity_threshold' => 10,
+
     'items' => [
         [
             'name' => 'Common Sword',

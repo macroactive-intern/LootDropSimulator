@@ -1,59 +1,121 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Loot Drop Simulator
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Laravel 12 JSON API for a game loot and trading system. Players roll for items, trade them peer-to-peer with escrow protection, and join guilds with treasury management.
 
-## About Laravel
+## Requirements
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.2+
+- Composer
+- Node.js 18+ and npm
+- SQLite (default) or MySQL
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Quick start (fresh clone)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```bash
+composer setup
+```
 
-## Learning Laravel
+This single command does everything:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+1. `composer install` — installs PHP dependencies
+2. Copies `.env.example` → `.env` (if `.env` does not already exist)
+3. `php artisan key:generate` — sets `APP_KEY`
+4. `php artisan migrate --force` — runs all database migrations
+5. `npm install` — installs JS dependencies
+6. `npm run build` — compiles front-end assets
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Running the dev server
 
-## Laravel Sponsors
+```bash
+composer dev
+```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Starts three processes concurrently:
 
-### Premium Partners
+| Process | Description |
+|---------|-------------|
+| `php artisan serve` | HTTP server on `http://localhost:8000` |
+| `php artisan queue:listen` | Processes queued loot drop jobs |
+| `npm run dev` | Vite asset watcher |
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## Running tests
 
-## Contributing
+```bash
+composer test
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## API overview
 
-## Code of Conduct
+All endpoints are under `/api`. Requests require `Accept: application/json`.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Authentication uses Laravel Sanctum bearer tokens. Obtain a token through your own auth flow (Sanctum token creation is outside this simulator's scope).
 
-## Security Vulnerabilities
+### Loot
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/api/loot-drop` | Required | Queue a loot roll for the authenticated user |
+| `GET` | `/api/loot-drops` | Required | List your dropped items (paginated, filterable by `?rarity=`) |
+| `GET` | `/api/loot-drops/stats` | Required | Your loot stats (total drops, legendary count, pity counter) |
+| `GET` | `/api/loot-drops/global-stats` | None | Aggregate drop counts across all users |
+| `POST` | `/api/admin/loot-grant` | Admin | Grant a specific item to a user |
 
-## License
+### Trades
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `POST` | `/api/trades` | Required | Propose a trade |
+| `GET` | `/api/trades` | Required | List your trades (filterable by `?status=`) |
+| `GET` | `/api/trades/{id}` | Required | Get a single trade |
+| `POST` | `/api/trades/{id}/accept` | Required | Accept a trade (recipient only) |
+| `POST` | `/api/trades/{id}/reject` | Required | Reject a trade (recipient only) |
+| `POST` | `/api/trades/{id}/cancel` | Required | Cancel a trade (initiator only) |
+
+### Guilds
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/api/guilds` | Required | List guilds |
+| `POST` | `/api/guilds` | Required | Create a guild |
+| `GET` | `/api/guilds/{id}` | Required | Get a guild |
+| `PUT` | `/api/guilds/{id}` | Required | Update a guild (leader only) |
+| `DELETE` | `/api/guilds/{id}` | Required | Delete a guild (creator + leader only) |
+| `POST` | `/api/guilds/{id}/join` | Required | Join an open guild |
+| `POST` | `/api/guilds/{id}/leave` | Required | Leave a guild |
+| `DELETE` | `/api/guilds/{id}/members/{userId}` | Required | Kick a member (leader/officer only) |
+| `PUT` | `/api/guilds/{id}/members/{userId}` | Required | Change a member's role (leader only) |
+| `POST` | `/api/guilds/{id}/treasury/deposit` | Required | Deposit gold into treasury |
+| `POST` | `/api/guilds/{id}/treasury/withdraw` | Required | Withdraw gold from treasury (leader only) |
+| `POST` | `/api/guilds/{id}/invites` | Required | Send an invite by email (leader/officer) |
+| `POST` | `/api/guilds/invites/{token}/accept` | None | Accept an invite via token link |
+| `GET` | `/api/guilds/{id}/events` | Required | Audit log for the guild (leader/officer) |
+
+### Inventory
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/api/inventory` | Required | List your inventory items |
+
+## Configuration
+
+Tunables live in `config/` and can be overridden via environment variables:
+
+| Config key | Default | Description |
+|------------|---------|-------------|
+| `loot.pity_threshold` | `10` | Consecutive common drops before a rare+ is forced |
+| `loot.guild_leader_legendary_multiplier` | `2.0` | Legendary weight multiplier for guild leaders |
+| `trade.expiry_hours` | `24` | Hours until a pending trade expires |
+| `trade.max_pending_per_user` | `10` | Max pending trades a user can have at once |
+| `trade.fairness_ratio` | `0.75` | Minimum value ratio for a trade to be accepted |
+| `guild.max_guilds_per_user` | `5` | Max guilds a user can belong to |
+| `guild.invite_expiry_hours` | `48` | Hours until an invite link expires |
+
+## CI
+
+GitHub Actions runs on every push and pull request:
+
+1. **Pint** — code style check (`./vendor/bin/pint --test`)
+2. **PHPStan** — static analysis at level 5 (`./vendor/bin/phpstan analyse --level=5`)
+3. **Pest** — test suite (`php artisan test`)
+
+See `.github/workflows/ci.yml`.

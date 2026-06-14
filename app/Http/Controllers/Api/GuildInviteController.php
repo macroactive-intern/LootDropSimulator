@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
@@ -15,8 +17,7 @@ class GuildInviteController extends Controller
 {
     public function __construct(
         private readonly GuildService $guildService,
-    ) {
-    }
+    ) {}
 
     public function store(StoreGuildInviteRequest $request, Guild $guild): JsonResponse
     {

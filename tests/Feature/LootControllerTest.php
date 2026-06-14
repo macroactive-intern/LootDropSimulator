@@ -139,10 +139,12 @@ test('authenticated users can view their loot stats', function (): void {
         ->getJson('/api/loot-drops/stats')
         ->assertOk()
         ->assertJson([
-            'user_id' => $user->id,
-            'total_drops' => 12,
-            'legendary_count' => 2,
-            'consecutive_common_drops' => 0,
+            'data' => [
+                'user_id' => $user->id,
+                'total_drops' => 12,
+                'legendary_count' => 2,
+                'consecutive_common_drops' => 0,
+            ],
         ]);
 });
 
@@ -167,8 +169,10 @@ test('global stats are public', function (): void {
     $this->getJson('/api/loot-drops/global-stats')
         ->assertOk()
         ->assertJson([
-            'total_drops' => 2,
-            'legendary_count' => 1,
+            'data' => [
+                'total_drops' => 2,
+                'legendary_count' => 1,
+            ],
         ]);
 });
 
@@ -209,7 +213,7 @@ test('admin loot grant rolls back if loot dropped event handling fails', functio
     $user = User::factory()->create();
 
     Event::listen(LootDropped::class, function (): void {
-        throw new \RuntimeException('Stats listener failed.');
+        throw new RuntimeException('Stats listener failed.');
     });
 
     $this->withoutExceptionHandling();
@@ -218,7 +222,7 @@ test('admin loot grant rolls back if loot dropped event handling fails', functio
         ->postJson('/api/admin/loot-grant', [
             'user_id' => $user->id,
             'item_name' => 'Legendary Ring',
-        ]))->toThrow(\RuntimeException::class, 'Stats listener failed.');
+        ]))->toThrow(RuntimeException::class, 'Stats listener failed.');
 
     expect($user->droppedItems()
         ->where('item_name', 'Legendary Ring')
